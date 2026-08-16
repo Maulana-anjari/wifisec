@@ -486,7 +486,6 @@ func (linuxAdapter) WiFiInfo() (WiFiInfo, error) {
 		rate, _ := strconv.Atoi(strings.Fields(fields[5])[0])
 		quality, _ := strconv.Atoi(fields[6])
 
-		_ = iface
 		return WiFiInfo{
 			SSID:      fields[1],
 			BSSID:     fields[2],
