@@ -7,7 +7,7 @@ import (
 )
 
 func TestLoadParsesChecksYAML(t *testing.T) {
-	r, err := Load("checks.yaml")
+	r, err := Load()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -26,8 +26,30 @@ func TestLoadParsesChecksYAML(t *testing.T) {
 	}
 }
 
+// TestRegistryCardinality asserts the registry has exactly the checks
+// spec §6 defines: 13 (§6.1) + 2 (§6.2) + 9 (§6.3) + 8 (§6.4) = 32, and
+// that no ID is duplicated.
+func TestRegistryCardinality(t *testing.T) {
+	r, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	const want = 13 + 2 + 9 + 8
+	if len(r.Checks) != want {
+		t.Errorf("len(r.Checks) = %d, want %d (spec §6.1-6.4)", len(r.Checks), want)
+	}
+
+	seen := make(map[string]bool, len(r.Checks))
+	for _, c := range r.Checks {
+		if seen[c.ID] {
+			t.Errorf("duplicate check id %q", c.ID)
+		}
+		seen[c.ID] = true
+	}
+}
+
 func TestFilterRespectsProfileLevel(t *testing.T) {
-	r, err := Load("checks.yaml")
+	r, err := Load()
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -108,6 +108,15 @@ checks:
     requires_privilege: false
     self_evident: false
     estimated_packets: 0
+  - id: wifi.link_speed
+    layer: wifi
+    title: "Kecepatan link negosiasi"
+    description: "Kecepatan link negosiasi (Mbps)"
+    profile_required: passive
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 0
 
   # Profil minimal — ~2 paket (spec §6.2)
   - id: dns.resolve_basic

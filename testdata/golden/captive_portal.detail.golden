@@ -1,6 +1,6 @@
 wifisec  ◑ standard  paket:2  09:20:00
 Checks (3)
 ! Deteksi captive portal  [net.captive_portal]
-  layer: http   status: anomalous   confidence: high
+  layer: http   status: anomalous   confidence: medium
   control performed: false
   packets sent: 2   duration: 80ms

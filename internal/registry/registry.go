@@ -1,13 +1,16 @@
 package registry
 
 import (
+	_ "embed"
 	"fmt"
-	"os"
 
 	"gopkg.in/yaml.v3"
 
 	"github.com/Maulana-anjari/wifisec/internal/model"
 )
+
+//go:embed checks.yaml
+var checksYAML []byte
 
 // CheckDefinition is the static, declarative metadata for one check
 // (spec §4.6). Runtime results are model.Check, not this type.
@@ -31,25 +34,25 @@ type yamlFile struct {
 	Checks []CheckDefinition `yaml:"checks"`
 }
 
-// Load reads and parses a checks.yaml registry file (spec §6).
-func Load(path string) (*Registry, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("registry: read %s: %w", path, err)
-	}
+// Load parses the checks.yaml registry embedded into the binary at
+// compile time (spec §6: "dimuat saat start"). Embedding avoids
+// resolving checks.yaml relative to the process's working directory,
+// which would break an installed binary run from outside its source
+// tree.
+func Load() (*Registry, error) {
 	var f yamlFile
-	if err := yaml.Unmarshal(data, &f); err != nil {
-		return nil, fmt.Errorf("registry: parse %s: %w", path, err)
+	if err := yaml.Unmarshal(checksYAML, &f); err != nil {
+		return nil, fmt.Errorf("registry: parse checks.yaml: %w", err)
 	}
 	return &Registry{Checks: f.Checks}, nil
 }
 
 // Filter returns only the definitions runnable at the given profile
-// (spec §3.2, §5.2): those whose ProfileRequired.Level() <= profile.Level().
+// (spec §3.2, §5.2): those the profile allows per model.Profile.Allows.
 func (r *Registry) Filter(profile model.Profile) []CheckDefinition {
 	var out []CheckDefinition
 	for _, c := range r.Checks {
-		if c.ProfileRequired.Level() <= profile.Level() {
+		if profile.Allows(c.ProfileRequired) {
 			out = append(out, c)
 		}
 	}

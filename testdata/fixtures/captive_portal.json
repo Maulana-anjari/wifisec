@@ -21,7 +21,7 @@
       "title": "Deteksi captive portal",
       "profile_required": "standard",
       "status": "anomalous",
-      "confidence": "high",
+      "confidence": "medium",
       "observed": {"portal_detected": true},
       "control": {"performed": false},
       "packets_sent": 2,
