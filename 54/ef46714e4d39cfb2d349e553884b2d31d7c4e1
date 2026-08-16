@@ -1,0 +1,21 @@
+internal/model/finding_test.go
+  s_4a2f8b27332225::t_26cc6d2f223cc9 1-24
+internal/model/finding.go
+  s_4a2f8b27332225::t_7b917282515a2f 1-37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "54ef46714e4d39cfb2d349e553884b2d31d7c4e1",
+  "prompts": {},
+  "sessions": {
+    "s_4a2f8b27332225": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260b6f6e-315a-4ea2-8999-7748e825f1c8",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Maulana Anjari Anggorokasih <maulana17anjari@gmail.com>"
+    }
+  }
+}
