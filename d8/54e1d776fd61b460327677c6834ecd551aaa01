@@ -1,0 +1,21 @@
+CLAUDE.md
+  s_e1060b61d9dadc::t_c392e3120ec73f 1-91
+SPEC-wifisec.md
+  s_e1060b61d9dadc::t_9c6006ee10cdd9 1-748
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "d854e1d776fd61b460327677c6834ecd551aaa01",
+  "prompts": {},
+  "sessions": {
+    "s_e1060b61d9dadc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "62f13586-1be6-4412-affc-ade2f809d695",
+        "model": "unknown"
+      },
+      "human_author": "Maulana Anjari Anggorokasih <maulana17anjari@gmail.com>"
+    }
+  }
+}
