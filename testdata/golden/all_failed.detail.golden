@@ -1,0 +1,7 @@
+wifisec  ◐ minimal  paket:0  09:50:00
+Checks (3)
+× Konfigurasi interface  [local.interface]
+  layer: local   status: error   confidence: low
+  control performed: false
+  error: gagal membaca interface: permission denied
+  packets sent: 0   duration: 5ms

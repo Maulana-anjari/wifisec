@@ -1,0 +1,6 @@
+wifisec  ◑ standard  paket:1  09:10:00
+Checks (3)
+! CA di trust store  [local.trust_store]
+  layer: local   status: anomalous   confidence: high
+  control performed: false
+  packets sent: 0   duration: 15ms

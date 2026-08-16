@@ -1,0 +1,67 @@
+{
+  "schema_version": "1.0",
+  "tool_version": "0.1.0-m1",
+  "run_id": "run-all-failed-0001",
+  "started_at": "2026-08-16T09:50:00Z",
+  "duration_ms": 60,
+  "profile": "minimal",
+  "network": {
+    "ssid_hash": "sha256:5555eeee00000000000000000000000000000000000000000000000000",
+    "bssid_hash": "sha256:6666ffff00000000000000000000000000000000000000000000000000",
+    "known_network": false
+  },
+  "checks": [
+    {
+      "id": "local.interface",
+      "layer": "local",
+      "title": "Konfigurasi interface",
+      "profile_required": "passive",
+      "status": "error",
+      "confidence": "low",
+      "control": {"performed": false},
+      "packets_sent": 0,
+      "duration_ms": 5,
+      "error": "gagal membaca interface: permission denied"
+    },
+    {
+      "id": "wifi.security",
+      "layer": "wifi",
+      "title": "Tipe enkripsi",
+      "profile_required": "passive",
+      "status": "error",
+      "confidence": "low",
+      "control": {"performed": false},
+      "packets_sent": 0,
+      "duration_ms": 3,
+      "error": "wifi adapter tidak terdeteksi"
+    },
+    {
+      "id": "dns.resolve_basic",
+      "layer": "dns",
+      "title": "Resolusi DNS dasar",
+      "profile_required": "minimal",
+      "status": "error",
+      "confidence": "low",
+      "control": {"performed": false},
+      "packets_sent": 0,
+      "duration_ms": 30,
+      "error": "timeout menghubungi resolver"
+    }
+  ],
+  "findings": [],
+  "verdict": {
+    "safety": "unknown",
+    "score": 0,
+    "headline": "Seluruh pemeriksaan gagal dijalankan; tidak ada kesimpulan yang dapat diberikan.",
+    "top_findings": [],
+    "blind_spots": [
+      "Seluruh check gagal - tidak ada satu pun aspek jaringan yang berhasil diperiksa."
+    ],
+    "use_cases": {
+      "browsing_umum": "caution",
+      "login_akun_pribadi": "caution",
+      "kerja_sensitif": "caution",
+      "internet_banking": "caution"
+    }
+  }
+}

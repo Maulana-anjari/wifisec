@@ -1,0 +1,7 @@
+wifisec  ● passive  paket:0  09:40:00
+Live (5 checks)
+  ✓ Tipe enkripsi
+  ✓ CA di trust store
+  – Resolusi DNS dasar
+  – Penerbit sertifikat
+  – Deteksi captive portal

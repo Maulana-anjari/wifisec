@@ -1,0 +1,6 @@
+wifisec  ◑ standard  paket:7  09:00:00
+Checks (6)
+✓ Tipe enkripsi  [wifi.security]
+  layer: wifi   status: normal   confidence: high
+  control performed: false
+  packets sent: 0   duration: 5ms

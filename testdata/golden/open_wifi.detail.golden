@@ -1,0 +1,6 @@
+wifisec  ◐ minimal  paket:1  09:30:00
+Checks (3)
+! Tipe enkripsi  [wifi.security]
+  layer: wifi   status: anomalous   confidence: medium
+  control performed: false
+  packets sent: 0   duration: 4ms

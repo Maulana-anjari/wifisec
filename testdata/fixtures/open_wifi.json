@@ -1,0 +1,90 @@
+{
+  "schema_version": "1.0",
+  "tool_version": "0.1.0-m1",
+  "run_id": "run-open-wifi-0001",
+  "started_at": "2026-08-16T09:30:00Z",
+  "duration_ms": 300,
+  "profile": "minimal",
+  "network": {
+    "ssid_hash": "sha256:1111aaaa00000000000000000000000000000000000000000000000000",
+    "bssid_hash": "sha256:2222bbbb00000000000000000000000000000000000000000000000000",
+    "band": "2.4GHz",
+    "channel": 1,
+    "security": "open",
+    "pmf": "disabled",
+    "known_network": false
+  },
+  "checks": [
+    {
+      "id": "wifi.security",
+      "layer": "wifi",
+      "title": "Tipe enkripsi",
+      "profile_required": "passive",
+      "status": "anomalous",
+      "confidence": "medium",
+      "observed": {"security": "open"},
+      "control": {"performed": false},
+      "packets_sent": 0,
+      "duration_ms": 4
+    },
+    {
+      "id": "wifi.pmf",
+      "layer": "wifi",
+      "title": "Protected Management Frames",
+      "profile_required": "passive",
+      "status": "anomalous",
+      "confidence": "medium",
+      "observed": {"pmf": "disabled"},
+      "control": {"performed": false},
+      "packets_sent": 0,
+      "duration_ms": 3
+    },
+    {
+      "id": "tls.cert_issuer",
+      "layer": "tls",
+      "title": "Penerbit sertifikat",
+      "profile_required": "minimal",
+      "status": "normal",
+      "confidence": "high",
+      "target": "example.com",
+      "observed": {"issuer": "Let's Encrypt R3"},
+      "expected": {"source": "baseline_bundled"},
+      "control": {"performed": false},
+      "packets_sent": 1,
+      "duration_ms": 100
+    }
+  ],
+  "findings": [
+    {
+      "id": "weak_encryption",
+      "severity": "critical",
+      "confidence": "high",
+      "title": "Jaringan tidak terenkripsi",
+      "explanation": "Jaringan WiFi ini terbuka (open); trafik lapisan link dapat disadap siapa pun dalam jangkauan.",
+      "based_on": ["wifi.security"],
+      "recommendation": "Gunakan VPN atau hindari trafik sensitif di jaringan ini."
+    },
+    {
+      "id": "no_pmf",
+      "severity": "warning",
+      "confidence": "medium",
+      "title": "Protected Management Frames tidak aktif",
+      "explanation": "Frame manajemen WiFi tidak dilindungi, membuka peluang deauth palsu.",
+      "based_on": ["wifi.pmf"],
+      "recommendation": "Waspadai koneksi terputus mendadak; itu bisa jadi serangan deauth."
+    }
+  ],
+  "verdict": {
+    "safety": "avoid",
+    "score": 45,
+    "headline": "Jaringan terbuka tanpa enkripsi; trafik non-HTTPS dapat disadap.",
+    "top_findings": ["weak_encryption", "no_pmf"],
+    "blind_spots": [],
+    "use_cases": {
+      "browsing_umum": "caution",
+      "login_akun_pribadi": "avoid",
+      "kerja_sensitif": "avoid",
+      "internet_banking": "avoid"
+    }
+  }
+}
