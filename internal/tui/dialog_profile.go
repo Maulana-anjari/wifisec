@@ -10,6 +10,12 @@ import (
 // ProfileDialog renders the profile-raise confirmation dialog (spec
 // §5.2 G2/G3). It only renders; the caller collects the typed
 // confirmation text via the TUI's key handling.
+//
+// Not yet wired into Model: there is no keybinding that constructs or
+// displays a ProfileDialog today, so it is currently dead code. Wiring
+// it up — a keybinding to trigger the raise-profile flow, typing state
+// on Model, etc. — is real interactive feature work that belongs to
+// Milestone 3 ("Sistem profil"), not this milestone.
 type ProfileDialog struct {
 	Target       model.Profile
 	KnownNetwork bool

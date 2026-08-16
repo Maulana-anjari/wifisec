@@ -62,6 +62,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		case "enter":
 			if m.screen == ScreenFindings {
+				if idx, ok := checkIndexForFinding(m.result, m.findingIndex); ok {
+					m.checkIndex = idx
+				}
 				m.screen = ScreenDetail
 			}
 			return m, nil
@@ -119,6 +122,26 @@ func (m *Model) moveSelection(delta int) {
 		}
 		m.checkIndex = clampIndex(m.checkIndex+delta, n)
 	}
+}
+
+// checkIndexForFinding returns the index in result.Checks of the first
+// check ID referenced by the selected finding's BasedOn, so drilling
+// into a finding on the detail screen shows the check it's actually
+// about rather than whatever check happened to be selected before.
+func checkIndexForFinding(result model.Result, findingIndex int) (int, bool) {
+	if findingIndex < 0 || findingIndex >= len(result.Findings) {
+		return 0, false
+	}
+	basedOn := result.Findings[findingIndex].BasedOn
+	if len(basedOn) == 0 {
+		return 0, false
+	}
+	for i, c := range result.Checks {
+		if c.ID == basedOn[0] {
+			return i, true
+		}
+	}
+	return 0, false
 }
 
 func clampIndex(i, n int) int {

@@ -38,7 +38,6 @@ func TestRenderFixturesGolden(t *testing.T) {
 	}
 
 	for _, path := range fixtures {
-		path := path
 		name := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
 
 		data, err := os.ReadFile(path)
@@ -51,7 +50,6 @@ func TestRenderFixturesGolden(t *testing.T) {
 		}
 
 		for _, sc := range screens {
-			sc := sc
 			t.Run(name+"/"+sc.name, func(t *testing.T) {
 				m := New(result)
 				next, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 40})

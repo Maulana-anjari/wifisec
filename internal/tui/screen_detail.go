@@ -14,6 +14,11 @@ func renderDetailScreen(r model.Result, selected, width int) string {
 		b.WriteString("  (tidak ada check)\n")
 		return b.String()
 	}
+	if selected < 0 {
+		selected = 0
+	} else if selected >= len(r.Checks) {
+		selected = len(r.Checks) - 1
+	}
 	c := r.Checks[selected]
 	fmt.Fprintf(&b, "%s %s  [%s]\n", StatusGlyph(c.Status), c.Title, c.ID)
 	fmt.Fprintf(&b, "  layer: %s   status: %s   confidence: %s\n", c.Layer, c.Status, c.Confidence)
