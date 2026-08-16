@@ -1,0 +1,34 @@
+internal/tui/main_test.go
+  s_4a2f8b27332225::t_a90bc0872f71dd 1-20
+testdata/golden/captive_portal.verdict.golden
+  s_4a2f8b27332225::t_f7bbba10467bb1 5-7
+internal/tui/screen_verdict.go
+  s_4a2f8b27332225::t_239e81160eb695 57-60,66-72,79,86
+  s_4a2f8b27332225::t_ea0a3dba4ffd15 7-8
+testdata/golden/corporate_mitm.verdict.golden
+  s_4a2f8b27332225::t_f7bbba10467bb1 5-6
+testdata/golden/clean_home.verdict.golden
+  s_4a2f8b27332225::t_f7bbba10467bb1 5-6
+testdata/golden/passive_only.verdict.golden
+  s_4a2f8b27332225::t_f7bbba10467bb1 5-11
+testdata/golden/all_failed.verdict.golden
+  s_4a2f8b27332225::t_f7bbba10467bb1 5-7
+testdata/golden/open_wifi.verdict.golden
+  s_4a2f8b27332225::t_f7bbba10467bb1 5-6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "c3bab0ce7d2ed6f6228ebf7a8d4d516913b5b370",
+  "prompts": {},
+  "sessions": {
+    "s_4a2f8b27332225": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260b6f6e-315a-4ea2-8999-7748e825f1c8",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Maulana Anjari Anggorokasih <maulana17anjari@gmail.com>"
+    }
+  }
+}
