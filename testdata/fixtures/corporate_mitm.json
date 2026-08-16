@@ -1,0 +1,84 @@
+{
+  "schema_version": "1.0",
+  "tool_version": "0.1.0-m1",
+  "run_id": "run-corporate-mitm-0001",
+  "started_at": "2026-08-16T09:10:00Z",
+  "duration_ms": 900,
+  "profile": "standard",
+  "network": {
+    "ssid_hash": "sha256:cccc333300000000000000000000000000000000000000000000000000",
+    "bssid_hash": "sha256:dddd444400000000000000000000000000000000000000000000000000",
+    "oui": "00:1A:2B",
+    "band": "5GHz",
+    "channel": 36,
+    "security": "WPA2",
+    "pmf": "disabled",
+    "known_network": false
+  },
+  "checks": [
+    {
+      "id": "local.trust_store",
+      "layer": "local",
+      "title": "CA di trust store",
+      "profile_required": "passive",
+      "status": "anomalous",
+      "confidence": "high",
+      "observed": {"non_public_ca_found": true, "subject": "Acme Corp Proxy CA", "issuer": "Acme Corp Root CA"},
+      "control": {"performed": false},
+      "packets_sent": 0,
+      "duration_ms": 15
+    },
+    {
+      "id": "tls.cert_issuer",
+      "layer": "tls",
+      "title": "Penerbit sertifikat",
+      "profile_required": "minimal",
+      "status": "anomalous",
+      "confidence": "medium",
+      "target": "example.com",
+      "observed": {"issuer": "Acme Corp Proxy CA", "fingerprint": "sha256:9f9f0000", "chain_length": 2},
+      "expected": {"source": "baseline_bundled", "issuer": "Let's Encrypt R3"},
+      "control": {"performed": false},
+      "packets_sent": 1,
+      "duration_ms": 110
+    },
+    {
+      "id": "wifi.security",
+      "layer": "wifi",
+      "title": "Tipe enkripsi",
+      "profile_required": "passive",
+      "status": "normal",
+      "confidence": "high",
+      "observed": {"security": "WPA2"},
+      "control": {"performed": false},
+      "packets_sent": 0,
+      "duration_ms": 5
+    }
+  ],
+  "findings": [
+    {
+      "id": "tls_interception",
+      "severity": "critical",
+      "confidence": "high",
+      "title": "Trafik HTTPS kemungkinan besar dibaca oleh operator jaringan",
+      "explanation": "Sertifikat diterbitkan oleh CA yang tidak dikenal publik dan CA tersebut terpasang di trust store perangkat ini.",
+      "impact": ["password", "email", "chat", "internal_docs"],
+      "based_on": ["tls.cert_issuer", "local.trust_store"],
+      "recommendation": "Hindari login ke akun pribadi. Gunakan koneksi seluler untuk hal sensitif.",
+      "false_positive_hints": ["Umum dan sah pada perangkat milik perusahaan dengan MDM."]
+    }
+  ],
+  "verdict": {
+    "safety": "avoid",
+    "score": 60,
+    "headline": "Trafik HTTPS di jaringan ini kemungkinan besar dapat dibaca oleh operator.",
+    "top_findings": ["tls_interception"],
+    "blind_spots": [],
+    "use_cases": {
+      "browsing_umum": "caution",
+      "login_akun_pribadi": "avoid",
+      "kerja_sensitif": "avoid",
+      "internet_banking": "avoid"
+    }
+  }
+}

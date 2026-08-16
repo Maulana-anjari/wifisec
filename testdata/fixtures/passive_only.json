@@ -1,0 +1,94 @@
+{
+  "schema_version": "1.0",
+  "tool_version": "0.1.0-m1",
+  "run_id": "run-passive-only-0001",
+  "started_at": "2026-08-16T09:40:00Z",
+  "duration_ms": 120,
+  "profile": "passive",
+  "network": {
+    "ssid_hash": "sha256:3333cccc00000000000000000000000000000000000000000000000000",
+    "bssid_hash": "sha256:4444dddd00000000000000000000000000000000000000000000000000",
+    "band": "5GHz",
+    "channel": 149,
+    "security": "WPA2",
+    "pmf": "optional",
+    "known_network": false
+  },
+  "checks": [
+    {
+      "id": "wifi.security",
+      "layer": "wifi",
+      "title": "Tipe enkripsi",
+      "profile_required": "passive",
+      "status": "normal",
+      "confidence": "high",
+      "observed": {"security": "WPA2"},
+      "control": {"performed": false},
+      "packets_sent": 0,
+      "duration_ms": 4
+    },
+    {
+      "id": "local.trust_store",
+      "layer": "local",
+      "title": "CA di trust store",
+      "profile_required": "passive",
+      "status": "normal",
+      "confidence": "high",
+      "observed": {"non_public_ca_found": false},
+      "control": {"performed": false},
+      "packets_sent": 0,
+      "duration_ms": 10
+    },
+    {
+      "id": "dns.resolve_basic",
+      "layer": "dns",
+      "title": "Resolusi DNS dasar",
+      "profile_required": "minimal",
+      "status": "skipped",
+      "confidence": "low",
+      "control": {"performed": false, "reason": "profile_does_not_allow"},
+      "packets_sent": 0,
+      "duration_ms": 0
+    },
+    {
+      "id": "tls.cert_issuer",
+      "layer": "tls",
+      "title": "Penerbit sertifikat",
+      "profile_required": "minimal",
+      "status": "skipped",
+      "confidence": "low",
+      "control": {"performed": false, "reason": "profile_does_not_allow"},
+      "packets_sent": 0,
+      "duration_ms": 0
+    },
+    {
+      "id": "net.captive_portal",
+      "layer": "http",
+      "title": "Deteksi captive portal",
+      "profile_required": "standard",
+      "status": "skipped",
+      "confidence": "low",
+      "control": {"performed": false, "reason": "profile_does_not_allow"},
+      "packets_sent": 0,
+      "duration_ms": 0
+    }
+  ],
+  "findings": [],
+  "verdict": {
+    "safety": "unknown",
+    "score": 100,
+    "headline": "Hanya pemeriksaan pasif yang dijalankan; keyakinan verdict rendah.",
+    "top_findings": [],
+    "blind_spots": [
+      "Keamanan HTTPS (TLS) tidak diperiksa - profil passive tidak mengirim paket.",
+      "DNS tidak diperiksa - profil passive tidak mengirim paket.",
+      "Captive portal dan kualitas jaringan tidak diperiksa - memerlukan profil standard."
+    ],
+    "use_cases": {
+      "browsing_umum": "caution",
+      "login_akun_pribadi": "caution",
+      "kerja_sensitif": "caution",
+      "internet_banking": "caution"
+    }
+  }
+}

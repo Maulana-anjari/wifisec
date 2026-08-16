@@ -1,0 +1,6 @@
+wifisec  ● passive  paket:0  09:40:00
+Checks (5)
+✓ Tipe enkripsi  [wifi.security]
+  layer: wifi   status: normal   confidence: high
+  control performed: false
+  packets sent: 0   duration: 4ms

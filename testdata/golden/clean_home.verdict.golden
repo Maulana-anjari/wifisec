@@ -1,0 +1,12 @@
+wifisec  ◑ standard  paket:7  09:00:00
+OK  (score 100)
+Jaringan ini tampak aman untuk penggunaan umum.
+
+Temuan utama (0)                                  Tidak diperiksa (0)                              
+  (tidak ada)                                       (tidak ada)                                    
+
+Use case:
+  browsing_umum        ok
+  login_akun_pribadi   ok
+  kerja_sensitif       caution
+  internet_banking     caution

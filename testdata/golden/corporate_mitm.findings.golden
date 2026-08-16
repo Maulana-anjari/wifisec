@@ -1,0 +1,4 @@
+wifisec  ◑ standard  paket:1  09:10:00
+Findings (1)
+> ▲ Trafik HTTPS kemungkinan besar dibaca oleh operator jaringan
+      hint: Umum dan sah pada perangkat milik perusahaan dengan MDM.

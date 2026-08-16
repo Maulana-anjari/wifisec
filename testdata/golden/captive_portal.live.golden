@@ -1,0 +1,5 @@
+wifisec  ◑ standard  paket:2  09:20:00
+Live (3 checks)
+  ! Deteksi captive portal
+  ? Perbandingan DNS jaringan vs DoH
+  ? Latency ke gateway

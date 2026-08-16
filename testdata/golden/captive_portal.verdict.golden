@@ -1,0 +1,13 @@
+wifisec  ◑ standard  paket:2  09:20:00
+UNKNOWN  (score 95)
+Login ke portal jaringan diperlukan sebelum pemeriksaan lain dapat dilakukan.
+
+Temuan utama (1)                                  Tidak diperiksa (1)                              
+  - captive_portal                                  - Kualitas DNS dan latency belum diperiksa     
+                                                  karena portal captive.                           
+
+Use case:
+  browsing_umum        caution
+  login_akun_pribadi   caution
+  kerja_sensitif       caution
+  internet_banking     caution

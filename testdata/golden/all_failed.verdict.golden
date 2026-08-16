@@ -1,0 +1,13 @@
+wifisec  ◐ minimal  paket:0  09:50:00
+UNKNOWN  (score 0)
+Seluruh pemeriksaan gagal dijalankan; tidak ada kesimpulan yang dapat diberikan.
+
+Temuan utama (0)                                  Tidak diperiksa (1)                              
+  (tidak ada)                                       - Seluruh check gagal - tidak ada satu pun     
+                                                  aspek jaringan yang berhasil diperiksa.          
+
+Use case:
+  browsing_umum        caution
+  login_akun_pribadi   caution
+  kerja_sensitif       caution
+  internet_banking     caution

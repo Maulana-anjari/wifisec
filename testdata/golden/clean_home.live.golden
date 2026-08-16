@@ -1,0 +1,8 @@
+wifisec  ◑ standard  paket:7  09:00:00
+Live (6 checks)
+  ✓ Tipe enkripsi
+  ✓ Protected Management Frames
+  ✓ CA di trust store
+  ✓ Penerbit sertifikat
+  ✓ Perbandingan DNS jaringan vs DoH
+  ✓ Deteksi captive portal

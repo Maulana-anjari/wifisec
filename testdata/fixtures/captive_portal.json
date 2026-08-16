@@ -1,0 +1,77 @@
+{
+  "schema_version": "1.0",
+  "tool_version": "0.1.0-m1",
+  "run_id": "run-captive-portal-0001",
+  "started_at": "2026-08-16T09:20:00Z",
+  "duration_ms": 400,
+  "profile": "standard",
+  "network": {
+    "ssid_hash": "sha256:eeee555500000000000000000000000000000000000000000000000000",
+    "bssid_hash": "sha256:ffff666600000000000000000000000000000000000000000000000000",
+    "band": "2.4GHz",
+    "channel": 6,
+    "security": "open",
+    "pmf": "disabled",
+    "known_network": false
+  },
+  "checks": [
+    {
+      "id": "net.captive_portal",
+      "layer": "http",
+      "title": "Deteksi captive portal",
+      "profile_required": "standard",
+      "status": "anomalous",
+      "confidence": "medium",
+      "observed": {"portal_detected": true},
+      "control": {"performed": false},
+      "packets_sent": 2,
+      "duration_ms": 80
+    },
+    {
+      "id": "dns.compare_doh",
+      "layer": "dns",
+      "title": "Perbandingan DNS jaringan vs DoH",
+      "profile_required": "standard",
+      "status": "inconclusive",
+      "confidence": "low",
+      "control": {"performed": false, "reason": "captive_portal_detected"},
+      "packets_sent": 0,
+      "duration_ms": 20
+    },
+    {
+      "id": "net.latency_gateway",
+      "layer": "perf",
+      "title": "Latency ke gateway",
+      "profile_required": "standard",
+      "status": "inconclusive",
+      "confidence": "low",
+      "control": {"performed": false, "reason": "captive_portal_detected"},
+      "packets_sent": 0,
+      "duration_ms": 5
+    }
+  ],
+  "findings": [
+    {
+      "id": "captive_portal",
+      "severity": "info",
+      "confidence": "high",
+      "title": "Jaringan memerlukan login portal",
+      "explanation": "Portal captive terdeteksi dan belum login; pemeriksaan lain ditunda.",
+      "based_on": ["net.captive_portal"],
+      "recommendation": "Login ke portal lalu jalankan pemeriksaan ulang."
+    }
+  ],
+  "verdict": {
+    "safety": "unknown",
+    "score": 95,
+    "headline": "Login ke portal jaringan diperlukan sebelum pemeriksaan lain dapat dilakukan.",
+    "top_findings": ["captive_portal"],
+    "blind_spots": ["Kualitas DNS dan latency belum diperiksa karena portal captive."],
+    "use_cases": {
+      "browsing_umum": "caution",
+      "login_akun_pribadi": "caution",
+      "kerja_sensitif": "caution",
+      "internet_banking": "caution"
+    }
+  }
+}
