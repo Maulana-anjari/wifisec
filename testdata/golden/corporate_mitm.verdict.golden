@@ -2,8 +2,8 @@ wifisec  ◑ standard  paket:1  09:10:00
 AVOID  (score 60)
 Trafik HTTPS di jaringan ini kemungkinan besar dapat dibaca oleh operator.
 
-Temuan utama (1)                                  Tidak diperiksa (0)
-  - tls_interception                                (tidak ada)
+Temuan utama (1)                                  Tidak diperiksa (0)                              
+  - tls_interception                                (tidak ada)                                    
 
 Use case:
   browsing_umum        caution

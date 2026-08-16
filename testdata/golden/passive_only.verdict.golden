@@ -2,10 +2,13 @@ wifisec  ● passive  paket:0  09:40:00
 UNKNOWN  (score 100)
 Hanya pemeriksaan pasif yang dijalankan; keyakinan verdict rendah.
 
-Temuan utama (0)                                  Tidak diperiksa (3)
-  (tidak ada)                                       - Keamanan HTTPS (TLS) tidak diperiksa - profil passive tidak mengirim paket.
-                                                    - DNS tidak diperiksa - profil passive tidak mengirim paket.
-                                                    - Captive portal dan kualitas jaringan tidak diperiksa - memerlukan profil standard.
+Temuan utama (0)                                  Tidak diperiksa (3)                              
+  (tidak ada)                                       - Keamanan HTTPS (TLS) tidak diperiksa - profil
+                                                  passive tidak mengirim paket.                    
+                                                    - DNS tidak diperiksa - profil passive tidak   
+                                                  mengirim paket.                                  
+                                                    - Captive portal dan kualitas jaringan tidak   
+                                                  diperiksa - memerlukan profil standard.          
 
 Use case:
   browsing_umum        caution

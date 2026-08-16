@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/lipgloss"
+
 	"github.com/Maulana-anjari/wifisec/internal/model"
 )
 
@@ -52,28 +54,36 @@ func renderList(title string, items []string) string {
 
 // joinColumns lays two rendered blocks side by side at equal width, so
 // "top findings" and "blind spots" carry the same visual weight
-// (spec §9.3).
+// (spec §9.3). Each column is bounded to colWidth via lipgloss, which
+// both pads short lines and word-wraps long ones — unlike a raw
+// fmt.Fprintf("%-*s %s", ...) pad, which only bounds the left column
+// and lets the right column run arbitrarily wide.
 func joinColumns(left, right string, width int) string {
 	colWidth := width/2 - 1
 	if colWidth < 1 {
 		colWidth = 1
 	}
-	leftLines := strings.Split(strings.TrimRight(left, "\n"), "\n")
-	rightLines := strings.Split(strings.TrimRight(right, "\n"), "\n")
+	colStyle := lipgloss.NewStyle().Width(colWidth)
+	leftBlock := colStyle.Render(strings.TrimRight(left, "\n"))
+	rightBlock := colStyle.Render(strings.TrimRight(right, "\n"))
+	leftLines := strings.Split(leftBlock, "\n")
+	rightLines := strings.Split(rightBlock, "\n")
+	blank := strings.Repeat(" ", colWidth)
+
 	n := len(leftLines)
 	if len(rightLines) > n {
 		n = len(rightLines)
 	}
 	var b strings.Builder
 	for i := 0; i < n; i++ {
-		var l, r string
+		l, r := blank, ""
 		if i < len(leftLines) {
 			l = leftLines[i]
 		}
 		if i < len(rightLines) {
 			r = rightLines[i]
 		}
-		fmt.Fprintf(&b, "%-*s %s\n", colWidth, l, r)
+		fmt.Fprintf(&b, "%s %s\n", l, r)
 	}
 	return b.String()
 }

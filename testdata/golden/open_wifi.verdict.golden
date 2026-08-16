@@ -2,8 +2,8 @@ wifisec  ◐ minimal  paket:1  09:30:00
 AVOID  (score 45)
 Jaringan terbuka tanpa enkripsi; trafik non-HTTPS dapat disadap.
 
-Temuan utama (2)                                  Tidak diperiksa (0)
-  - weak_encryption                                 (tidak ada)
+Temuan utama (2)                                  Tidak diperiksa (0)                              
+  - weak_encryption                                 (tidak ada)                                    
   - no_pmf                                        
 
 Use case:
