@@ -1,0 +1,287 @@
+checks:
+  # Profil passive — 0 paket (spec §6.1)
+  - id: local.interface
+    layer: local
+    title: "Konfigurasi interface"
+    description: "IP, netmask, MTU, nama interface"
+    profile_required: passive
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 0
+  - id: local.gateway
+    layer: local
+    title: "Gateway default"
+    description: "IP gateway, apakah privat"
+    profile_required: passive
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 0
+  - id: local.dns_servers
+    layer: local
+    title: "Server DNS dari DHCP"
+    description: "Daftar resolver, klasifikasi internal/publik"
+    profile_required: passive
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 0
+  - id: local.routing
+    layer: local
+    title: "Tabel routing"
+    description: "Rute default, rute mencurigakan"
+    profile_required: passive
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 0
+  - id: local.mtu
+    layer: local
+    title: "MTU interface"
+    description: "Nilai MTU, apakah non-standar"
+    profile_required: passive
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 0
+  - id: local.proxy_system
+    layer: local
+    title: "Proxy sistem"
+    description: "HTTP/HTTPS proxy, PAC URL"
+    profile_required: passive
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 0
+  - id: local.trust_store
+    layer: local
+    title: "CA di trust store"
+    description: "CA non-publik yang terpasang"
+    profile_required: passive
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: true
+    estimated_packets: 0
+  - id: wifi.security
+    layer: wifi
+    title: "Tipe enkripsi"
+    description: "WPA2/WPA3/WEP/open"
+    profile_required: passive
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 0
+  - id: wifi.pmf
+    layer: wifi
+    title: "Protected Management Frames"
+    description: "enabled/disabled/required"
+    profile_required: passive
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 0
+  - id: wifi.signal
+    layer: wifi
+    title: "Kekuatan sinyal"
+    description: "RSSI, estimasi kualitas"
+    profile_required: passive
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 0
+  - id: wifi.channel
+    layer: wifi
+    title: "Channel dan band"
+    description: "Channel, band, lebar"
+    profile_required: passive
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 0
+  - id: wifi.bssid_vendor
+    layer: wifi
+    title: "Vendor perangkat AP"
+    description: "OUI, nama vendor"
+    profile_required: passive
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 0
+
+  # Profil minimal — ~2 paket (spec §6.2)
+  - id: dns.resolve_basic
+    layer: dns
+    title: "Resolusi DNS dasar"
+    description: "Hasil resolve satu domain kontrol"
+    profile_required: minimal
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 1
+  - id: tls.cert_issuer
+    layer: tls
+    title: "Penerbit sertifikat"
+    description: "Issuer, fingerprint, panjang rantai"
+    profile_required: minimal
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 1
+
+  # Profil standard (spec §6.3)
+  - id: net.captive_portal
+    layer: http
+    title: "Deteksi captive portal"
+    description: "Status portal login"
+    profile_required: standard
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 2
+  - id: net.latency_gateway
+    layer: perf
+    title: "Latency ke gateway"
+    description: "RTT ke gateway lokal"
+    profile_required: standard
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 10
+  - id: net.latency_internet
+    layer: perf
+    title: "Latency ke internet"
+    description: "RTT ke host internet"
+    profile_required: standard
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 10
+  - id: net.jitter
+    layer: perf
+    title: "Jitter"
+    description: "Variasi latency, dihitung dari net.latency_internet"
+    profile_required: standard
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 0
+  - id: net.packet_loss
+    layer: perf
+    title: "Packet loss"
+    description: "Persentase paket hilang, dihitung dari net.latency_internet"
+    profile_required: standard
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 0
+  - id: dns.compare_doh
+    layer: dns
+    title: "Perbandingan DNS jaringan vs DoH"
+    description: "Selisih hasil resolve lokal vs DoH"
+    profile_required: standard
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 4
+  - id: dns.transparent_proxy
+    layer: dns
+    title: "Deteksi intersepsi port 53"
+    description: "Apakah query ke resolver lain tetap dijawab"
+    profile_required: standard
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 2
+  - id: net.bufferbloat
+    layer: perf
+    title: "Latency saat dibebani"
+    description: "RTT di bawah beban vs idle"
+    profile_required: standard
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 20
+  - id: net.ipv6
+    layer: l4
+    title: "Ketersediaan IPv6"
+    description: "Konektivitas IPv6 keluar"
+    profile_required: standard
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 2
+
+  # Profil full (spec §6.4)
+  - id: l4.port_reachability
+    layer: l4
+    title: "Ketercapaian port umum"
+    description: "Status open/filtered untuk port umum; jeda >=200ms, maks 20 port, sekuensial"
+    profile_required: full
+    requires_control_server: true
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 20
+  - id: tls.sni_inspection
+    layer: tls
+    title: "Deteksi inspeksi SNI"
+    description: "Apakah SNI diperiksa/diblokir di jalur"
+    profile_required: full
+    requires_control_server: true
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 4
+  - id: tls.ech_support
+    layer: tls
+    title: "Dukungan ECH"
+    description: "Apakah Encrypted Client Hello berhasil"
+    profile_required: full
+    requires_control_server: true
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 4
+  - id: http.header_injection
+    layer: http
+    title: "Header yang disisipkan proxy"
+    description: "Header request/response yang ditambahkan di jalur"
+    profile_required: full
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 2
+  - id: net.path_mtu
+    layer: l4
+    title: "Path MTU discovery"
+    description: "MTU efektif sepanjang jalur"
+    profile_required: full
+    requires_control_server: true
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 10
+  - id: net.throttling
+    layer: perf
+    title: "Throttling selektif"
+    description: "Perbandingan throughput antar jenis trafik"
+    profile_required: full
+    requires_control_server: true
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 20
+  - id: net.quic
+    layer: l4
+    title: "Ketersediaan QUIC/HTTP3"
+    description: "Konektivitas UDP/443 QUIC"
+    profile_required: full
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 2
+  - id: wifi.channel_congestion
+    layer: wifi
+    title: "Kongesti channel"
+    description: "Level kongesti channel WiFi saat ini"
+    profile_required: full
+    requires_control_server: false
+    requires_privilege: false
+    self_evident: false
+    estimated_packets: 0
