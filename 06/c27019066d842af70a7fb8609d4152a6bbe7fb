@@ -1,0 +1,26 @@
+internal/model/profile_test.go
+  s_4a2f8b27332225::t_8fa1a6ed412977 1-44
+go.mod
+  s_4a2f8b27332225::t_11e93045c4edd5 1-3
+  s_4a2f8b27332225::t_1814c2f16bfc21 4-26
+internal/model/profile.go
+  s_4a2f8b27332225::t_63f2a075bfac8c 1-47
+go.sum
+  s_4a2f8b27332225::t_23fc1f1a5b7fc7 1-44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "06c27019066d842af70a7fb8609d4152a6bbe7fb",
+  "prompts": {},
+  "sessions": {
+    "s_4a2f8b27332225": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260b6f6e-315a-4ea2-8999-7748e825f1c8",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Maulana Anjari Anggorokasih <maulana17anjari@gmail.com>"
+    }
+  }
+}
