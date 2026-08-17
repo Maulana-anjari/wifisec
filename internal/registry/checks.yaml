@@ -70,7 +70,7 @@ checks:
     profile_required: passive
     requires_control_server: false
     requires_privilege: false
-    self_evident: false
+    self_evident: true
     estimated_packets: 0
   - id: wifi.pmf
     layer: wifi
