@@ -1,0 +1,21 @@
+internal/guard/counter.go
+  s_4a2f8b27332225::t_4cc6dfb4fd4216 1-43
+internal/guard/counter_test.go
+  s_4a2f8b27332225::t_b1247060356770 1-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "c67007b1ab3862448c9240b589a82bda83031cb2",
+  "prompts": {},
+  "sessions": {
+    "s_4a2f8b27332225": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260b6f6e-315a-4ea2-8999-7748e825f1c8",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Maulana Anjari Anggorokasih <maulana17anjari@gmail.com>"
+    }
+  }
+}
