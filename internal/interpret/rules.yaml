@@ -1,0 +1,48 @@
+rules:
+  - id: weak_encryption
+    severity: critical
+    when:
+      check: wifi.security
+      status: anomalous
+    title: "Jaringan WiFi ini tidak terenkripsi dengan aman"
+    explanation: |
+      Enkripsi WiFi yang terdeteksi lemah atau tidak ada (open/WEP).
+      Trafik lapisan link dapat disadap siapa pun dalam jangkauan sinyal.
+    impact: [password, email, chat]
+    recommendation: "Gunakan VPN atau hindari trafik sensitif di jaringan ini."
+
+  - id: no_pmf
+    severity: warning
+    when:
+      check: wifi.pmf
+      status: anomalous
+    title: "Protected Management Frames tidak aktif"
+    explanation: |
+      Frame manajemen WiFi tidak dilindungi, membuka peluang deauth palsu.
+    recommendation: "Waspadai koneksi terputus mendadak; itu bisa jadi serangan deauth."
+
+  - id: foreign_ca_present
+    severity: warning
+    when:
+      check: local.trust_store
+      status: anomalous
+    title: "CA non-publik ditemukan di trust store perangkat"
+    explanation: |
+      Ditemukan certificate authority yang tidak dikenal publik terpasang
+      di perangkat ini. Ini umum dan sah pada perangkat MDM perusahaan,
+      tapi juga bisa berarti software MITM lokal.
+    recommendation: "Jika ini bukan perangkat kerja dengan MDM, selidiki asal CA tersebut."
+    false_positive_hints:
+      - "Umum dan sah pada perangkat milik perusahaan dengan MDM."
+
+  - id: dns_internal_resolver
+    severity: warning
+    when:
+      check: local.dns_servers
+      status: anomalous
+    title: "DNS diarahkan ke resolver internal jaringan"
+    explanation: |
+      Server DNS yang diberikan jaringan ini adalah alamat privat,
+      bukan resolver publik dikenal. Operator jaringan dapat mengamati
+      atau memanipulasi resolusi nama domain.
+    recommendation: "Pertimbangkan menggunakan DNS-over-HTTPS jika mendukung."
