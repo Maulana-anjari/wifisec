@@ -24,17 +24,32 @@ func (c DNSServersCheck) Run(ctx context.Context, cc checks.CheckContext) model.
 	}
 	servers := make([]map[string]any, 0, len(cfg.DNSServers))
 	anyInternal := false
+	anyLoopbackStub := false
 	for _, s := range cfg.DNSServers {
 		ip := net.ParseIP(s)
-		internal := ip != nil && ip.IsPrivate()
-		anyInternal = anyInternal || internal
-		servers = append(servers, map[string]any{"address": s, "is_internal": internal})
+		switch {
+		case ip != nil && ip.IsLoopback():
+			// A loopback stub resolver (systemd-resolved, dnsmasq,
+			// etc.) — the real upstream is unknown from here. Neither
+			// "internal" nor "external" is an honest label (spec P3).
+			anyLoopbackStub = true
+			servers = append(servers, map[string]any{"address": s, "is_internal": false, "is_loopback_stub": true})
+		case ip != nil && ip.IsPrivate():
+			anyInternal = true
+			servers = append(servers, map[string]any{"address": s, "is_internal": true})
+		default:
+			servers = append(servers, map[string]any{"address": s, "is_internal": false})
+		}
 	}
 	status := model.StatusNormal
-	if anyInternal {
+	confidence := model.ConfidenceMedium
+	switch {
+	case anyLoopbackStub:
+		status = model.StatusInconclusive
+		confidence = model.ConfidenceLow
+	case anyInternal:
 		status = model.StatusAnomalous
 	}
-	confidence := model.ConfidenceMedium
 	return model.Check{
 		ID:              c.def.ID,
 		Layer:           c.def.Layer,

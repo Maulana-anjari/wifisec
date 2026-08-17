@@ -42,11 +42,36 @@ func TestInterfaceCheckReportsNetConfig(t *testing.T) {
 	}
 }
 
+func TestInterfaceCheckInconclusiveWithNoDefaultRoute(t *testing.T) {
+	a := fakeAdapter{netConfig: platform.NetConfig{}}
+	c := NewInterfaceCheck(testDef("local.interface")).Run(context.Background(), checks.CheckContext{Platform: a})
+	if c.Status != model.StatusInconclusive {
+		t.Errorf("Status = %s, want inconclusive with no default route", c.Status)
+	}
+	if c.Confidence != model.ConfidenceLow {
+		t.Errorf("Confidence = %s, want low with no default route", c.Confidence)
+	}
+}
+
 func TestGatewayCheckClassifiesPrivateIP(t *testing.T) {
-	a := fakeAdapter{netConfig: platform.NetConfig{Gateway: "192.168.1.1"}}
+	a := fakeAdapter{netConfig: platform.NetConfig{Interface: "eth0", Gateway: "192.168.1.1"}}
 	c := NewGatewayCheck(testDef("local.gateway")).Run(context.Background(), checks.CheckContext{Platform: a})
 	if c.Observed["is_private"] != true {
 		t.Errorf("Observed[is_private] = %v, want true for 192.168.1.1", c.Observed["is_private"])
+	}
+	if c.Status != model.StatusNormal {
+		t.Errorf("Status = %s, want normal when a default route exists", c.Status)
+	}
+}
+
+func TestGatewayCheckInconclusiveWithNoDefaultRoute(t *testing.T) {
+	a := fakeAdapter{netConfig: platform.NetConfig{}}
+	c := NewGatewayCheck(testDef("local.gateway")).Run(context.Background(), checks.CheckContext{Platform: a})
+	if c.Status != model.StatusInconclusive {
+		t.Errorf("Status = %s, want inconclusive with no default route", c.Status)
+	}
+	if c.Confidence != model.ConfidenceLow {
+		t.Errorf("Confidence = %s, want low with no default route", c.Confidence)
 	}
 }
 
@@ -56,6 +81,39 @@ func TestDNSServersCheckClassifiesPublicResolver(t *testing.T) {
 	servers, ok := c.Observed["servers"].([]map[string]any)
 	if !ok || len(servers) != 2 {
 		t.Fatalf("expected 2 classified servers, got %v", c.Observed["servers"])
+	}
+	// No loopback stub present: existing anomalous-on-internal-resolver
+	// behavior must still hold.
+	if c.Status != model.StatusAnomalous {
+		t.Errorf("Status = %s, want anomalous (192.168.1.1 is an internal resolver)", c.Status)
+	}
+}
+
+func TestDNSServersCheckFlagsLoopbackStubAsInconclusive(t *testing.T) {
+	a := fakeAdapter{netConfig: platform.NetConfig{DNSServers: []string{"8.8.8.8", "192.168.1.1", "127.0.0.53"}}}
+	c := NewDNSServersCheck(testDef("local.dns_servers")).Run(context.Background(), checks.CheckContext{Platform: a})
+	servers, ok := c.Observed["servers"].([]map[string]any)
+	if !ok || len(servers) != 3 {
+		t.Fatalf("expected 3 classified servers, got %v", c.Observed["servers"])
+	}
+	byAddr := make(map[string]map[string]any, len(servers))
+	for _, s := range servers {
+		byAddr[s["address"].(string)] = s
+	}
+	if byAddr["8.8.8.8"]["is_internal"] != false || byAddr["8.8.8.8"]["is_loopback_stub"] == true {
+		t.Errorf("8.8.8.8 = %v, want is_internal=false, is_loopback_stub absent-or-false", byAddr["8.8.8.8"])
+	}
+	if byAddr["192.168.1.1"]["is_internal"] != true {
+		t.Errorf("192.168.1.1 = %v, want is_internal=true", byAddr["192.168.1.1"])
+	}
+	if byAddr["127.0.0.53"]["is_loopback_stub"] != true {
+		t.Errorf("127.0.0.53 = %v, want is_loopback_stub=true", byAddr["127.0.0.53"])
+	}
+	if c.Status != model.StatusInconclusive {
+		t.Errorf("Status = %s, want inconclusive when a loopback stub resolver is present", c.Status)
+	}
+	if c.Confidence != model.ConfidenceLow {
+		t.Errorf("Confidence = %s, want low when a loopback stub resolver is present", c.Confidence)
 	}
 }
 
@@ -68,7 +126,7 @@ func TestRoutingCheckReportsDefaultRoute(t *testing.T) {
 }
 
 func TestMTUCheckFlagsNonStandard(t *testing.T) {
-	a := fakeAdapter{netConfig: platform.NetConfig{MTU: 1400}}
+	a := fakeAdapter{netConfig: platform.NetConfig{Interface: "eth0", MTU: 1400}}
 	c := NewMTUCheck(testDef("local.mtu")).Run(context.Background(), checks.CheckContext{Platform: a})
 	if c.Status != model.StatusAnomalous {
 		t.Errorf("Status = %s, want anomalous for non-standard MTU 1400", c.Status)
@@ -76,10 +134,21 @@ func TestMTUCheckFlagsNonStandard(t *testing.T) {
 }
 
 func TestMTUCheckAcceptsStandard(t *testing.T) {
-	a := fakeAdapter{netConfig: platform.NetConfig{MTU: 1500}}
+	a := fakeAdapter{netConfig: platform.NetConfig{Interface: "eth0", MTU: 1500}}
 	c := NewMTUCheck(testDef("local.mtu")).Run(context.Background(), checks.CheckContext{Platform: a})
 	if c.Status != model.StatusNormal {
 		t.Errorf("Status = %s, want normal for standard MTU 1500", c.Status)
+	}
+}
+
+func TestMTUCheckInconclusiveWithNoDefaultRoute(t *testing.T) {
+	a := fakeAdapter{netConfig: platform.NetConfig{}}
+	c := NewMTUCheck(testDef("local.mtu")).Run(context.Background(), checks.CheckContext{Platform: a})
+	if c.Status != model.StatusInconclusive {
+		t.Errorf("Status = %s, want inconclusive with no default route", c.Status)
+	}
+	if c.Confidence != model.ConfidenceLow {
+		t.Errorf("Confidence = %s, want low with no default route", c.Confidence)
 	}
 }
 

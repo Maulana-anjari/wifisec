@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -18,6 +19,21 @@ import (
 type linuxAdapter struct{}
 
 func New() Adapter { return linuxAdapter{} }
+
+// execErrorDetail formats an exec.Command/exec.CommandContext failure
+// for a Reason/error string, appending the command's captured stderr
+// when available. A bare err.Error() is usually just the uninformative
+// "exit status 1", which drops the command's real complaint and
+// weakens P4's blind-spot reporting quality.
+func execErrorDetail(err error) string {
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		if stderr := strings.TrimSpace(string(exitErr.Stderr)); stderr != "" {
+			return err.Error() + ": " + stderr
+		}
+	}
+	return err.Error()
+}
 
 // --- NetConfig ---
 
@@ -41,7 +57,7 @@ type ipAddrEntry struct {
 func (linuxAdapter) NetConfig() (NetConfig, error) {
 	routeOut, err := exec.Command("ip", "-j", "route", "show", "default").Output()
 	if err != nil {
-		return NetConfig{}, fmt.Errorf("platform: ip route show default: %w", err)
+		return NetConfig{}, fmt.Errorf("platform: ip route show default: %s", execErrorDetail(err))
 	}
 	var routes []ipRouteEntry
 	if err := json.Unmarshal(routeOut, &routes); err != nil {
@@ -104,7 +120,7 @@ func parseResolvConf(path string) []string {
 func (linuxAdapter) RoutingTable() ([]Route, error) {
 	out, err := exec.Command("ip", "-j", "route", "show").Output()
 	if err != nil {
-		return nil, fmt.Errorf("platform: ip route show: %w", err)
+		return nil, fmt.Errorf("platform: ip route show: %s", execErrorDetail(err))
 	}
 	var entries []ipRouteEntry
 	if err := json.Unmarshal(out, &entries); err != nil {
@@ -195,7 +211,7 @@ func (linuxAdapter) WiFiInfo() (WiFiInfo, error) {
 		"active,ssid,bssid,chan,freq,rate,signal,security",
 		"device", "wifi", "list", "--rescan", "no").Output()
 	if err != nil {
-		return WiFiInfo{Available: false, Reason: "nmcli not available: " + err.Error()}, nil
+		return WiFiInfo{Available: false, Reason: "nmcli not available: " + execErrorDetail(err)}, nil
 	}
 
 	for _, line := range strings.Split(string(out), "\n") {

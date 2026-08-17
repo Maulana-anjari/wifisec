@@ -70,6 +70,7 @@ checks:
     profile_required: passive
     requires_control_server: false
     requires_privilege: false
+    # self_evident: open/WEP is self-evidently anomalous with no control-server comparison needed (same precedent as local.trust_store above)
     self_evident: true
     estimated_packets: 0
   - id: wifi.pmf

@@ -137,8 +137,18 @@ func buildVerdict(checks []model.Check, findings []model.Finding) model.Verdict 
 func blindSpotsFor(checks []model.Check) []string {
 	var spots []string
 	for _, c := range checks {
-		if c.Status == model.StatusSkipped {
+		if c.Status != model.StatusSkipped {
+			continue
+		}
+		switch c.Control.Reason {
+		case "profile_does_not_allow":
 			spots = append(spots, c.Title+" tidak diperiksa - profil aktif tidak mengizinkan.")
+		default:
+			// Only "profile_does_not_allow" exists as of this milestone;
+			// this branch is a graceful fallback for skip reasons a
+			// later milestone adds (e.g. "no_control_server") that
+			// haven't been given their own message yet.
+			spots = append(spots, c.Title+" tidak diperiksa.")
 		}
 	}
 	return spots
@@ -157,18 +167,42 @@ func headlineFor(safety model.Safety) string {
 	}
 }
 
+// useCasesFor holds one map per Safety tier (spec §7.3's per-use-case
+// risk table). SafetyOK, SafetyAvoid, and SafetyUnknown are taken
+// verbatim from testdata/fixtures/*.json (the spec's own reference
+// behavior). No fixture has safety: caution, so SafetyCaution below is
+// a controller ruling interpolated between the OK and Avoid tiers, not
+// derived from fixture data: kerja_sensitif/internet_banking (highest
+// sensitivity) degrade one step before login_akun_pribadi, which
+// degrades one step before browsing_umum (lowest sensitivity, never
+// reaches avoid in any fixture).
+var useCasesTable = map[model.Safety]map[string]string{
+	model.SafetyOK: {
+		"browsing_umum":      "ok",
+		"login_akun_pribadi": "ok",
+		"kerja_sensitif":     "caution",
+		"internet_banking":   "caution",
+	},
+	model.SafetyCaution: {
+		"browsing_umum":      "caution",
+		"login_akun_pribadi": "caution",
+		"kerja_sensitif":     "avoid",
+		"internet_banking":   "avoid",
+	},
+	model.SafetyAvoid: {
+		"browsing_umum":      "caution",
+		"login_akun_pribadi": "avoid",
+		"kerja_sensitif":     "avoid",
+		"internet_banking":   "avoid",
+	},
+	model.SafetyUnknown: {
+		"browsing_umum":      "caution",
+		"login_akun_pribadi": "caution",
+		"kerja_sensitif":     "caution",
+		"internet_banking":   "caution",
+	},
+}
+
 func useCasesFor(safety model.Safety) map[string]string {
-	value := "caution"
-	switch safety {
-	case model.SafetyOK:
-		value = "ok"
-	case model.SafetyAvoid:
-		value = "avoid"
-	}
-	return map[string]string{
-		"browsing_umum":      value,
-		"login_akun_pribadi": value,
-		"kerja_sensitif":     value,
-		"internet_banking":   value,
-	}
+	return useCasesTable[safety]
 }

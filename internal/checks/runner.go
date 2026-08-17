@@ -19,7 +19,31 @@ func Run(ctx context.Context, checkers []Checker, cc CheckContext) <-chan model.
 			wg.Add(1)
 			go func(checker Checker) {
 				defer wg.Done()
-				out <- checker.Run(ctx, cc)
+				checkCtx := ctx
+				if cc.Timeout > 0 {
+					var cancel context.CancelFunc
+					checkCtx, cancel = context.WithTimeout(ctx, cc.Timeout)
+					defer cancel()
+				}
+				// NOTE: this makes checkCtx carry a real deadline, but
+				// today's Checker.Run implementations don't select on
+				// ctx.Done() themselves — they call platform.Adapter
+				// methods backed by plain exec.Command, which does not
+				// observe context cancellation. So a genuinely hung
+				// nmcli/ip call is NOT actually interrupted yet; this is
+				// the deadline-plumbing half of that fix, not the whole
+				// fix (follow-up: exec.CommandContext in the adapter).
+				c := checker.Run(checkCtx, cc)
+				// Defense-in-depth: assert the structural invariants
+				// (spec §4.2) every checker is expected to already
+				// satisfy. Doesn't change Status/Observed on the
+				// (expected) common case where validation passes —
+				// just surfaces a violation honestly via Error instead
+				// of silently shipping a malformed Check.
+				if err := model.ValidateCheck(c, checker.Definition().SelfEvident); err != nil {
+					c.Error = "ValidateCheck: " + err.Error()
+				}
+				out <- c
 			}(checker)
 		}
 		wg.Wait()

@@ -1,12 +1,14 @@
-//go:build !linux && !darwin
+//go:build !linux
 
 package platform
 
 // stubAdapter backs platforms with no real adapter yet (spec §4.7:
 // "Jika utilitas tidak tersedia... kembalikan WiFiInfo{Available:
 // false, ...} — jangan kembalikan error yang menggagalkan seluruh
-// run"). darwin.go (a later milestone) will narrow this build tag's
-// effective platforms automatically once it exists.
+// run"). This currently covers darwin (a later milestone adds a real
+// darwin.go, which will need to shrink this tag back to
+// "!linux && !darwin" so it doesn't shadow the new file) and any other
+// unsupported GOOS.
 type stubAdapter struct{}
 
 func New() Adapter { return stubAdapter{} }

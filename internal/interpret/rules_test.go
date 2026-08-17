@@ -37,6 +37,41 @@ func TestApplyCleanChecksProduceOKVerdict(t *testing.T) {
 	if verdict.Safety != model.SafetyOK || verdict.Score != 100 {
 		t.Errorf("verdict = %+v, want ok/100", verdict)
 	}
+	wantUseCases := map[string]string{
+		"browsing_umum":      "ok",
+		"login_akun_pribadi": "ok",
+		"kerja_sensitif":     "caution",
+		"internet_banking":   "caution",
+	}
+	for k, want := range wantUseCases {
+		if got := verdict.UseCases[k]; got != want {
+			t.Errorf("UseCases[%q] = %q, want %q", k, got, want)
+		}
+	}
+}
+
+// TestUseCasesForMatchesFixtures pins useCasesFor's per-safety-tier
+// table to the values extracted from testdata/fixtures/*.json (the
+// spec's own reference behavior) — SafetyCaution has no fixture and is
+// asserted separately as a controller-ruling interpolation.
+func TestUseCasesForMatchesFixtures(t *testing.T) {
+	cases := []struct {
+		safety model.Safety
+		want   map[string]string
+	}{
+		{model.SafetyOK, map[string]string{"browsing_umum": "ok", "login_akun_pribadi": "ok", "kerja_sensitif": "caution", "internet_banking": "caution"}},
+		{model.SafetyAvoid, map[string]string{"browsing_umum": "caution", "login_akun_pribadi": "avoid", "kerja_sensitif": "avoid", "internet_banking": "avoid"}},
+		{model.SafetyUnknown, map[string]string{"browsing_umum": "caution", "login_akun_pribadi": "caution", "kerja_sensitif": "caution", "internet_banking": "caution"}},
+		{model.SafetyCaution, map[string]string{"browsing_umum": "caution", "login_akun_pribadi": "caution", "kerja_sensitif": "avoid", "internet_banking": "avoid"}},
+	}
+	for _, tc := range cases {
+		got := useCasesFor(tc.safety)
+		for k, want := range tc.want {
+			if got[k] != want {
+				t.Errorf("useCasesFor(%s)[%q] = %q, want %q", tc.safety, k, got[k], want)
+			}
+		}
+	}
 }
 
 func TestApplyFillsBlindSpotsForSkippedChecks(t *testing.T) {

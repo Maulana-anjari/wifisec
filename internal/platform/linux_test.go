@@ -41,7 +41,7 @@ func TestLinuxTrustStoreCAsDoesNotError(t *testing.T) {
 		t.Fatalf("TrustStoreCAs() error: %v", err)
 	}
 	if len(cas) == 0 {
-		t.Error("expected at least one CA from /etc/ssl/certs on this dev machine")
+		t.Fatal("expected at least one CA from /etc/ssl/certs on this dev machine")
 	}
 	for _, c := range cas[:1] {
 		if c.Subject == "" {

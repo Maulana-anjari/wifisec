@@ -24,13 +24,21 @@ func (c GatewayCheck) Run(ctx context.Context, cc checks.CheckContext) model.Che
 	}
 	ip := net.ParseIP(cfg.Gateway)
 	isPrivate := ip != nil && ip.IsPrivate()
+	status := model.StatusNormal
+	confidence := model.ConfidenceHigh
+	if cfg.Interface == "" {
+		// No default route was found (spec T1's netns scenario) — there
+		// is no gateway to observe, not a confident "normal" gateway.
+		status = model.StatusInconclusive
+		confidence = model.ConfidenceLow
+	}
 	return model.Check{
 		ID:              c.def.ID,
 		Layer:           c.def.Layer,
 		Title:           c.def.Title,
 		ProfileRequired: c.def.ProfileRequired,
-		Status:          model.StatusNormal,
-		Confidence:      model.ConfidenceHigh,
+		Status:          status,
+		Confidence:      confidence,
 		Observed: map[string]any{
 			"gateway":    cfg.Gateway,
 			"is_private": isPrivate,

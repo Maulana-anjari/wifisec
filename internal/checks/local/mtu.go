@@ -25,7 +25,13 @@ func (c MTUCheck) Run(ctx context.Context, cc checks.CheckContext) model.Check {
 	}
 	status := model.StatusNormal
 	confidence := model.ConfidenceHigh
-	if cfg.MTU != 0 && cfg.MTU != standardMTU {
+	switch {
+	case cfg.Interface == "":
+		// No default route was found (spec T1's netns scenario) — there
+		// is no MTU to observe, not a confident "normal" one.
+		status = model.StatusInconclusive
+		confidence = model.ConfidenceLow
+	case cfg.MTU != 0 && cfg.MTU != standardMTU:
 		status = model.StatusAnomalous
 		confidence = model.ConfidenceMedium
 	}

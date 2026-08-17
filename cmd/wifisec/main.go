@@ -59,6 +59,39 @@ func runReal() {
 	for _, id := range unimplemented {
 		fmt.Fprintf(os.Stderr, "warning: %s has no implementation yet, skipping\n", id)
 	}
+	if len(unimplemented) > 0 {
+		// All 13 passive checks have real implementations as of this
+		// milestone, so this should never trigger in practice — if it
+		// does, it's a registry/factory-map drift bug the user needs to
+		// know about immediately, not a soft warning they can miss.
+		fmt.Fprintln(os.Stderr, "error: one or more passive-profile checks have no implementation; refusing to produce an incomplete verdict")
+		os.Exit(1)
+	}
+
+	// Every check the passive profile does NOT allow must still show up
+	// as an explicit skipped result (spec P4: a Verdict that doesn't
+	// list what wasn't checked is a bug) — reg.Filter above only
+	// returns what's runnable, so walk the full registry for the rest.
+	passiveIDs := make(map[string]bool, len(defs))
+	for _, d := range defs {
+		passiveIDs[d.ID] = true
+	}
+	var skipped []model.Check
+	for _, def := range reg.Checks {
+		if passiveIDs[def.ID] {
+			continue
+		}
+		skipped = append(skipped, model.Check{
+			ID:              def.ID,
+			Layer:           def.Layer,
+			Title:           def.Title,
+			ProfileRequired: def.ProfileRequired,
+			Status:          model.StatusSkipped,
+			Confidence:      model.ConfidenceLow,
+			Control:         model.Control{Performed: false, Reason: "profile_does_not_allow"},
+			PacketsSent:     0,
+		})
+	}
 
 	cc := checks.CheckContext{
 		Platform: platform.New(),
@@ -66,11 +99,15 @@ func runReal() {
 		Timeout:  10 * time.Second,
 	}
 
+	// Outer budget for the whole run (all checkers combined); cc.Timeout
+	// above governs each individual check via runner.go's per-checker
+	// context.WithTimeout, so a single slow check can't consume the
+	// entire 30s budget by itself.
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	start := time.Now()
-	var results []model.Check
+	results := append([]model.Check{}, skipped...)
 	for c := range checks.Run(ctx, builtCheckers, cc) {
 		results = append(results, c)
 	}
