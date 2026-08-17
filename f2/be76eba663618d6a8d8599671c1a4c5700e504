@@ -1,0 +1,22 @@
+internal/platform/linux_test.go
+  s_4a2f8b27332225::t_da79bcc3db9314 59-82
+internal/platform/linux.go
+  s_4a2f8b27332225::t_95c4b2f5c5a2ad 207-208
+  s_4a2f8b27332225::t_f81dc254edcce4 256-266
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "f2be76eba663618d6a8d8599671c1a4c5700e504",
+  "prompts": {},
+  "sessions": {
+    "s_4a2f8b27332225": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260b6f6e-315a-4ea2-8999-7748e825f1c8",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Maulana Anjari Anggorokasih <maulana17anjari@gmail.com>"
+    }
+  }
+}
