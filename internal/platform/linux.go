@@ -204,8 +204,8 @@ func (linuxAdapter) WiFiInfo() (WiFiInfo, error) {
 			continue
 		}
 		channel, _ := strconv.Atoi(fields[3])
-		freqMHz, _ := strconv.Atoi(strings.Fields(fields[4])[0])
-		rate, _ := strconv.Atoi(strings.Fields(fields[5])[0])
+		freqMHz, _ := strconv.Atoi(firstField(fields[4]))
+		rate, _ := strconv.Atoi(firstField(fields[5]))
 		quality, _ := strconv.Atoi(fields[6])
 
 		return WiFiInfo{
@@ -251,6 +251,17 @@ func bandForFreq(mhz int) string {
 	default:
 		return ""
 	}
+}
+
+// firstField returns the first whitespace-separated token in s, or ""
+// if s has none (e.g. nmcli reported an empty FREQ/RATE field). Safe
+// to feed straight into strconv.Atoi, which fails gracefully on "".
+func firstField(s string) string {
+	f := strings.Fields(s)
+	if len(f) == 0 {
+		return ""
+	}
+	return f[0]
 }
 
 // splitNmcliTerse splits one nmcli -t line on unescaped colons,

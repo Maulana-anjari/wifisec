@@ -56,3 +56,27 @@ func TestLinuxWiFiInfoDoesNotError(t *testing.T) {
 		t.Fatalf("WiFiInfo() error: %v", err)
 	}
 }
+
+// firstField backs the FREQ/RATE parsing in WiFiInfo. nmcli can report
+// those fields as empty for some driver/entry states (e.g. a hidden or
+// transiently-unassociated network); firstField must not panic on that,
+// so strconv.Atoi can fail gracefully instead of indexing an empty slice.
+func TestFirstField(t *testing.T) {
+	cases := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{"normal", "2412 MHz", "2412"},
+		{"empty", "", ""},
+		{"whitespace only", "   ", ""},
+		{"no unit suffix", "130", "130"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := firstField(c.in); got != c.want {
+				t.Errorf("firstField(%q) = %q, want %q", c.in, got, c.want)
+			}
+		})
+	}
+}
