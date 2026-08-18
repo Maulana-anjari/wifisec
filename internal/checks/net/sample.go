@@ -1,6 +1,6 @@
-// Package net implements the wifisec "net" and "perf"-layer active
-// checks (spec §6.3): TCP-RTT-based latency/jitter/packet-loss,
-// captive-portal detection, bufferbloat, and IPv6 reachability.
+// Package net implements wifisec active checks for network properties
+// including latency (gateway, internet), IPv6 reachability, and related
+// observations (spec §6.3). This file provides the TCP sampling primitive.
 //
 // No ICMP: CLAUDE.md forbids adding a third-party ICMP library, and raw
 // ICMP sockets need root on most systems this tool targets. Every

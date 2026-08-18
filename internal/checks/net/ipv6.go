@@ -27,7 +27,7 @@ func (c IPv6Check) Run(ctx stdcontext.Context, cc checks.CheckContext) model.Che
 		return checks.NewErrorCheck(c.def, err, start)
 	}
 	resolver := stdnet.Resolver{PreferGo: true}
-	ips, err := resolver.LookupIP(ctx, "ip6", "example.com")
+	ips, err := resolver.LookupIP(ctx, "ip6", controlDomain)
 	available := err == nil && len(ips) > 0
 	if available {
 		dialer := stdnet.Dialer{Timeout: 2 * time.Second}

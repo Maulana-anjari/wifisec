@@ -9,9 +9,12 @@ import (
 	"github.com/Maulana-anjari/wifisec/internal/registry"
 )
 
-// internetTarget is the control domain approved for M4 (see plan
+// controlDomain is the control domain approved for M4 (see plan
 // Global Constraints — spec §13 required asking, not guessing).
-const internetTarget = "example.com:443"
+const controlDomain = "example.com"
+
+// internetTarget is the control domain with port for internet reachability tests.
+const internetTarget = controlDomain + ":443"
 
 type LatencyGatewayCheck struct{ def registry.CheckDefinition }
 
@@ -43,7 +46,14 @@ func (c LatencyGatewayCheck) Run(ctx stdcontext.Context, cc checks.CheckContext)
 	// error (spec P3).
 	samples, sent, lost := sampleTCP(ctx, cfg.Gateway+":80", c.def.EstimatedPackets, 2*time.Second)
 	if len(samples) == 0 {
-		samples, sent, lost = sampleTCP(ctx, cfg.Gateway+":443", c.def.EstimatedPackets, 2*time.Second)
+		// Reserve packets for fallback to port 443.
+		if err := cc.Counter.Add(c.def.ID, c.def.EstimatedPackets); err != nil {
+			return checks.NewErrorCheck(c.def, err, start)
+		}
+		samples443, sent443, lost443 := sampleTCP(ctx, cfg.Gateway+":443", c.def.EstimatedPackets, 2*time.Second)
+		samples = samples443
+		sent += sent443
+		lost += lost443
 	}
 	if len(samples) == 0 {
 		return model.Check{
