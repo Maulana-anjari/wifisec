@@ -1,0 +1,21 @@
+internal/guard/bssid_watch.go
+  s_4a2f8b27332225::t_99123e7470ea84 1-42
+internal/guard/bssid_watch_test.go
+  s_4a2f8b27332225::t_0332a8bcb1bac9 1-86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "8fa9d3855dc49a452d7ba72270091b3942ad6493",
+  "prompts": {},
+  "sessions": {
+    "s_4a2f8b27332225": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260b6f6e-315a-4ea2-8999-7748e825f1c8",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Maulana Anjari Anggorokasih <maulana17anjari@gmail.com>"
+    }
+  }
+}
