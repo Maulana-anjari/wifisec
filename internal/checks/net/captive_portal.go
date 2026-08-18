@@ -13,7 +13,6 @@ import (
 )
 
 const (
-	captivePortalURL    = "http://example.com/"
 	captivePortalMarker = "Example Domain"
 )
 
@@ -38,7 +37,7 @@ func (c CaptivePortalCheck) Run(ctx stdcontext.Context, cc checks.CheckContext) 
 			return stdhttp.ErrUseLastResponse
 		},
 	}
-	req, err := stdhttp.NewRequestWithContext(ctx, stdhttp.MethodGet, captivePortalURL, nil)
+	req, err := stdhttp.NewRequestWithContext(ctx, stdhttp.MethodGet, "http://"+controlDomain+"/", nil)
 	if err != nil {
 		return checks.NewErrorCheck(c.def, err, start)
 	}

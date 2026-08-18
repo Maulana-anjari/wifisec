@@ -32,6 +32,11 @@ func RunGated(ctx context.Context, checkers []Checker, cc CheckContext, gateID s
 	go func() {
 		defer close(out)
 		gateResult := gate.Run(ctx, cc)
+		// Defense-in-depth: validate the gate result, the output that decides
+		// whether every other check in the profile even executes (spec P4).
+		if err := model.ValidateCheck(gateResult, gate.Definition().SelfEvident); err != nil {
+			gateResult.Error = "ValidateCheck: " + err.Error()
+		}
 		out <- gateResult
 		if isTripped(gateResult) {
 			for _, c := range rest {
