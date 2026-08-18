@@ -1,0 +1,29 @@
+internal/checks/net/net_test.go
+  s_4a2f8b27332225::t_1a51253658ddf9 189
+  s_4a2f8b27332225::t_1d467d4390c258 108-125,127,129-130,132-145,147-188,190-210
+  s_4a2f8b27332225::t_2f8467485c769d 126,128,131
+  s_4a2f8b27332225::t_787792d1fad23d 146
+internal/checks/net/ipv6.go
+  s_4a2f8b27332225::t_7a82e858f0b35f 30
+internal/checks/net/sample.go
+  s_4a2f8b27332225::t_596030bf5c688b 1-3
+internal/checks/net/latency.go
+  s_4a2f8b27332225::t_93a7226d355397 49-56
+  s_4a2f8b27332225::t_1002ec8ff5413a 12,14-17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "54a3f17deb47325a6008d067472c2a2689e0fca7",
+  "prompts": {},
+  "sessions": {
+    "s_4a2f8b27332225": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260b6f6e-315a-4ea2-8999-7748e825f1c8",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Maulana Anjari Anggorokasih <maulana17anjari@gmail.com>"
+    }
+  }
+}
