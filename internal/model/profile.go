@@ -24,14 +24,23 @@ var profileLevel = map[Profile]int{
 var estimatedPackets = map[Profile]int{
 	ProfilePassive: 0,
 	ProfileMinimal: 2,
-	// 52 = the 7 non-zero rows in spec §6.3's own table (2+10+10+4+2+20+2)
+	// 62 = worst-case standard-tier demand, not the flat sum of spec
+	// §6.3's table. net.latency_gateway's port-80→port-443 fallback
+	// (any gateway that doesn't serve HTTP on port 80 — common)
+	// ACCUMULATES Counter.Add across both attempts, so its real
+	// worst case is 20 (10+10), not the table's flat 10. That makes
+	// the standard tier: 20(gateway)+10(internet)+2(captive_portal)+
+	// 4(compare_doh)+2(transparent_proxy)+20(bufferbloat)+2(ipv6) = 60,
 	// PLUS the 2 minimal-tier checks (dns.resolve_basic, tls.cert_issuer)
 	// that also run — for real, calling Counter.Add — whenever the
 	// active profile is standard or above, since profiles are
-	// cumulative (spec §4.1). The pre-M4 value of 50 excluded those 2
-	// and would have made the last standard-tier check to claim budget
-	// spuriously fail with StatusError on a perfectly clean network.
-	ProfileStandard: 52,
+	// cumulative (spec §4.1). Total: 62. This is a display/limit value,
+	// not a hard cap (guard.PacketCounter enforces the real limit at
+	// runtime), so overstating it slightly here is the safe direction —
+	// unlike the prior value (52), which was provably insufficient
+	// whenever the fallback fires and would spuriously StatusError the
+	// two minimal-tier checks on a perfectly clean network.
+	ProfileStandard: 62,
 	ProfileFull:     150,
 }
 

@@ -242,17 +242,36 @@ func runReal(requested model.Profile, ownsNetwork bool) {
 			ungatedBatch = append(ungatedBatch, checker)
 		}
 	}
+	// gatedBatch and ungatedBatch are independent (the ungated,
+	// passive/minimal-tier batch never depends on the captive-portal
+	// gate's result), so both channels are started immediately and
+	// drained concurrently. Draining them sequentially instead would let
+	// a slow standard-tier run (captive_portal's 5s timeout plus up to
+	// 10s per standard checker) starve the near-instant passive/minimal
+	// checks of their share of the shared 30s outer context deadline.
 	var latencyResult model.Check
 	haveLatencyResult := false
-	for c := range checks.RunGated(ctx, gatedBatch, cc, "net.captive_portal",
-		func(c model.Check) bool { return c.Status == model.StatusAnomalous }, "captive_portal_detected") {
-		if c.ID == "net.latency_internet" {
-			latencyResult, haveLatencyResult = c, true
+	gatedCh := checks.RunGated(ctx, gatedBatch, cc, "net.captive_portal",
+		func(c model.Check) bool { return c.Status == model.StatusAnomalous }, "captive_portal_detected")
+	ungatedCh := checks.Run(ctx, ungatedBatch, cc)
+	for gatedCh != nil || ungatedCh != nil {
+		select {
+		case c, ok := <-gatedCh:
+			if !ok {
+				gatedCh = nil
+				continue
+			}
+			if c.ID == "net.latency_internet" {
+				latencyResult, haveLatencyResult = c, true
+			}
+			results = append(results, c)
+		case c, ok := <-ungatedCh:
+			if !ok {
+				ungatedCh = nil
+				continue
+			}
+			results = append(results, c)
 		}
-		results = append(results, c)
-	}
-	for c := range checks.Run(ctx, ungatedBatch, cc) {
-		results = append(results, c)
 	}
 	if haveJitter && havePacketLoss {
 		if !haveLatencyResult {
