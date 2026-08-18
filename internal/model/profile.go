@@ -22,9 +22,16 @@ var profileLevel = map[Profile]int{
 // approximate packet counts from spec §6.2-§6.4; it is not a hard
 // limit — guard.PacketCounter enforces the real limit at runtime.
 var estimatedPackets = map[Profile]int{
-	ProfilePassive:  0,
-	ProfileMinimal:  2,
-	ProfileStandard: 50,
+	ProfilePassive: 0,
+	ProfileMinimal: 2,
+	// 52 = the 7 non-zero rows in spec §6.3's own table (2+10+10+4+2+20+2)
+	// PLUS the 2 minimal-tier checks (dns.resolve_basic, tls.cert_issuer)
+	// that also run — for real, calling Counter.Add — whenever the
+	// active profile is standard or above, since profiles are
+	// cumulative (spec §4.1). The pre-M4 value of 50 excluded those 2
+	// and would have made the last standard-tier check to claim budget
+	// spuriously fail with StatusError on a perfectly clean network.
+	ProfileStandard: 52,
 	ProfileFull:     150,
 }
 
