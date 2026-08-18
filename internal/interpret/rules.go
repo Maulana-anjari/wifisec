@@ -26,12 +26,19 @@ type rule struct {
 	FalsePositiveHints []string `yaml:"false_positive_hints"`
 }
 
-// ruleWhen supports only the single-condition case this milestone's
-// rules.yaml needs (spec §7.1 also defines all/any/not; not needed
-// until a rule requires combining multiple checks).
+// ruleWhen supports single checks, all/any conditions, and observed field matching.
 type ruleWhen struct {
-	Check  string `yaml:"check"`
-	Status string `yaml:"status"`
+	Check    string         `yaml:"check"`
+	Status   string         `yaml:"status"`
+	Observed map[string]any `yaml:"observed"`
+	All      []ruleCond     `yaml:"all"`
+	Any      []ruleCond     `yaml:"any"`
+}
+
+type ruleCond struct {
+	Check    string         `yaml:"check"`
+	Status   string         `yaml:"status"`
+	Observed map[string]any `yaml:"observed"`
 }
 
 var rules = loadRules(rulesYAML)
@@ -56,10 +63,12 @@ func Apply(checks []model.Check) ([]model.Finding, model.Verdict) {
 
 	var findings []model.Finding
 	for _, r := range rules {
-		c, ok := byID[r.When.Check]
-		if !ok || string(c.Status) != r.When.Status {
+		basedOn := ruleMatches(r.When, byID)
+		if len(basedOn) == 0 {
 			continue
 		}
+		// Use the first matching check's confidence; in multi-check rules, we could average but simple is safer
+		c := byID[basedOn[0]]
 		findings = append(findings, model.Finding{
 			ID:                 r.ID,
 			Severity:           model.Severity(r.Severity),
@@ -67,13 +76,84 @@ func Apply(checks []model.Check) ([]model.Finding, model.Verdict) {
 			Title:              r.Title,
 			Explanation:        r.Explanation,
 			Impact:             r.Impact,
-			BasedOn:            []string{c.ID},
+			BasedOn:            basedOn,
 			Recommendation:     r.Recommendation,
 			FalsePositiveHints: r.FalsePositiveHints,
 		})
 	}
 
 	return findings, buildVerdict(checks, findings)
+}
+
+// ruleMatches evaluates a ruleWhen condition and returns the list of check IDs that matched, or empty if no match.
+func ruleMatches(when ruleWhen, byID map[string]model.Check) []string {
+	// Simple case: single check + status (+ optional observed)
+	if when.Check != "" {
+		c, ok := byID[when.Check]
+		if !ok {
+			return nil
+		}
+		if when.Status != "" && string(c.Status) != when.Status {
+			return nil
+		}
+		if len(when.Observed) > 0 && !matchesObserved(c, when.Observed) {
+			return nil
+		}
+		return []string{c.ID}
+	}
+
+	// All conditions must match
+	if len(when.All) > 0 {
+		var matched []string
+		for _, cond := range when.All {
+			c, ok := byID[cond.Check]
+			if !ok {
+				return nil
+			}
+			if cond.Status != "" && string(c.Status) != cond.Status {
+				return nil
+			}
+			if len(cond.Observed) > 0 && !matchesObserved(c, cond.Observed) {
+				return nil
+			}
+			matched = append(matched, c.ID)
+		}
+		return matched
+	}
+
+	// Any condition matches
+	if len(when.Any) > 0 {
+		var matched []string
+		for _, cond := range when.Any {
+			c, ok := byID[cond.Check]
+			if !ok {
+				continue
+			}
+			if cond.Status != "" && string(c.Status) != cond.Status {
+				continue
+			}
+			if len(cond.Observed) > 0 && !matchesObserved(c, cond.Observed) {
+				continue
+			}
+			matched = append(matched, c.ID)
+		}
+		if len(matched) > 0 {
+			return matched
+		}
+	}
+
+	return nil
+}
+
+// matchesObserved checks if a Check's Observed fields contain the expected key-value pairs.
+func matchesObserved(c model.Check, expected map[string]any) bool {
+	for k, v := range expected {
+		actual, ok := c.Observed[k]
+		if !ok || actual != v {
+			return false
+		}
+	}
+	return true
 }
 
 func buildVerdict(checks []model.Check, findings []model.Finding) model.Verdict {

@@ -46,3 +46,97 @@ rules:
       bukan resolver publik dikenal. Operator jaringan dapat mengamati
       atau memanipulasi resolusi nama domain.
     recommendation: "Pertimbangkan menggunakan DNS-over-HTTPS jika mendukung."
+
+  - id: tls_interception
+    severity: critical
+    when:
+      all:
+        - check: tls.cert_issuer
+          status: anomalous
+        - check: local.trust_store
+          observed:
+            non_public_ca_found: true
+    title: "Trafik HTTPS kemungkinan besar dibaca oleh operator jaringan"
+    explanation: |
+      Sertifikat diterbitkan tidak cocok dengan baseline yang dibundel,
+      dan CA yang tidak dikenal publik terpasang di trust store
+      perangkat ini. Artinya isi koneksi HTTPS dapat didekripsi di
+      jaringan.
+    impact: [password, email, chat, internal_docs]
+    recommendation: "Hindari login ke akun pribadi. Gunakan koneksi seluler untuk hal sensitif."
+    false_positive_hints:
+      - "Umum dan sah pada perangkat milik perusahaan dengan MDM."
+
+  - id: dns_manipulation
+    severity: critical
+    when:
+      check: dns.compare_doh
+      status: anomalous
+    title: "Resolusi DNS jaringan berbeda dari DNS-over-HTTPS independen"
+    explanation: |
+      Domain kontrol di-resolve ke alamat berbeda antara resolver
+      jaringan dan DNS-over-HTTPS independen. Ini indikasi kuat DNS
+      dimanipulasi di jaringan.
+    impact: [password, email, chat]
+    recommendation: "Gunakan DNS-over-HTTPS atau VPN sebelum mengakses layanan sensitif."
+
+  - id: transparent_dns_proxy
+    severity: warning
+    when:
+      check: dns.transparent_proxy
+      status: anomalous
+    title: "Query DNS ke resolver lain tetap dijawab jaringan"
+    explanation: |
+      Query DNS langsung ke resolver publik lain tidak mendapat
+      jawaban yang konsisten dengan DNS-over-HTTPS — kemungkinan port
+      53 dicegat terlepas dari tujuan yang diminta.
+    recommendation: "Gunakan DNS-over-HTTPS atau DNS-over-TLS agar query tidak dapat dicegat di port 53."
+
+  - id: system_proxy_forced
+    severity: warning
+    when:
+      check: local.proxy_system
+      status: anomalous
+    title: "Proxy sistem dipaksakan oleh jaringan"
+    explanation: |
+      Perangkat ini terkonfigurasi memakai HTTP/HTTPS proxy sistem.
+      Operator jaringan dapat mengamati atau memodifikasi trafik yang
+      melalui proxy tersebut.
+    recommendation: "Periksa asal konfigurasi proxy ini sebelum mengakses layanan sensitif."
+
+  - id: captive_portal
+    severity: info
+    when:
+      check: net.captive_portal
+      status: anomalous
+    title: "Jaringan ini memerlukan login melalui captive portal"
+    explanation: |
+      Permintaan ke domain kontrol dialihkan atau diganti, ciri khas
+      captive portal yang belum login. Check lain di profil ini
+      ditandai inconclusive sampai portal ini dilalui.
+    recommendation: "Selesaikan proses login captive portal, lalu jalankan pemeriksaan ulang."
+
+  - id: poor_quality
+    severity: info
+    when:
+      any:
+        - check: net.jitter
+          status: anomalous
+        - check: net.packet_loss
+          status: anomalous
+    title: "Kualitas koneksi jaringan ini buruk"
+    explanation: |
+      Variasi latency atau tingkat kehilangan paket ke internet cukup
+      tinggi. Ini masalah kualitas, bukan indikasi keamanan.
+    recommendation: "Panggilan video atau streaming mungkin terganggu di jaringan ini."
+
+  - id: bufferbloat
+    severity: info
+    when:
+      check: net.bufferbloat
+      status: anomalous
+    title: "Latency melonjak signifikan saat jaringan dibebani"
+    explanation: |
+      Latency ke internet naik jauh saat ada beban koneksi bersamaan,
+      ciri khas bufferbloat pada perangkat jaringan.
+    recommendation: "Aktivitas real-time (video call, gaming) mungkin terasa lag di jaringan ini saat ramai."
