@@ -1,0 +1,26 @@
+internal/model/profile.go
+  s_4a2f8b27332225::t_b4e466ba737d61 25-26
+  s_4a2f8b27332225::t_2e000c1561b466 27-34
+cmd/wifisec/main.go
+  s_4a2f8b27332225::t_b653bce36e87f6 282
+  s_4a2f8b27332225::t_b4e466ba737d61 31-34,335-347
+  s_4a2f8b27332225::t_d4641497bd9ad2 348-356
+  s_4a2f8b27332225::t_899bcd042e2c11 16,18-19
+  s_4a2f8b27332225::t_352ec1f2270997 139-159,176,181-182,231-251,254-263
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "7d1d9ef15fbdd09cdaa66d9096f455ccc0d33503",
+  "prompts": {},
+  "sessions": {
+    "s_4a2f8b27332225": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260b6f6e-315a-4ea2-8999-7748e825f1c8",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Maulana Anjari Anggorokasih <maulana17anjari@gmail.com>"
+    }
+  }
+}
