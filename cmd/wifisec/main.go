@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	pflag "github.com/spf13/pflag"
 
 	"github.com/Maulana-anjari/wifisec/internal/checks"
 	"github.com/Maulana-anjari/wifisec/internal/checks/local"
@@ -20,17 +22,47 @@ import (
 	"github.com/Maulana-anjari/wifisec/internal/tui"
 )
 
-// main has two modes:
-//   wifisec <result.json>   loads a saved/fixture Result and renders it (M1 stub, kept for manual TUI review)
-//   wifisec                 runs the real passive-profile checks on this machine and renders the result (M2)
-// Flag parsing, profile selection, and higher profiles land in M3/M4
-// (spec §9.1, §11).
+// main has three modes:
+//   wifisec <result.json>              loads a saved/fixture Result and renders it (M1, kept for manual TUI review)
+//   wifisec known-networks add         adds the current network to the whitelist (M3, spec §9.1/G7)
+//   wifisec [--profile P] [--i-own-this-network]  runs real checks at the requested profile (M2/M3)
 func main() {
-	if len(os.Args) >= 2 {
-		runFromFile(os.Args[1])
-		return
+	if len(os.Args) >= 2 && !strings.HasPrefix(os.Args[1], "-") {
+		switch os.Args[1] {
+		case "known-networks":
+			if len(os.Args) >= 3 && os.Args[2] == "add" {
+				runKnownNetworksAdd()
+				return
+			}
+			fmt.Fprintln(os.Stderr, "usage: wifisec known-networks add")
+			os.Exit(3)
+		default:
+			runFromFile(os.Args[1])
+			return
+		}
 	}
-	runReal()
+
+	profileFlag := pflag.String("profile", "passive", "profile to run: passive, minimal, standard, full")
+	ownsNetwork := pflag.Bool("i-own-this-network", false, "confirm non-interactively that you own/administer this network (required above standard)")
+	pflag.Parse()
+
+	requested, err := parseProfile(*profileFlag)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(4)
+	}
+	runReal(requested, *ownsNetwork)
+}
+
+// parseProfile validates a --profile flag value against the four
+// known profiles (spec §4.1) — no other string is accepted.
+func parseProfile(s string) (model.Profile, error) {
+	switch model.Profile(s) {
+	case model.ProfilePassive, model.ProfileMinimal, model.ProfileStandard, model.ProfileFull:
+		return model.Profile(s), nil
+	default:
+		return "", fmt.Errorf("invalid --profile %q: must be one of passive, minimal, standard, full", s)
+	}
 }
 
 func runFromFile(path string) {
@@ -47,7 +79,7 @@ func runFromFile(path string) {
 	launchTUI(result)
 }
 
-func runReal() {
+func runReal(requested model.Profile, ownsNetwork bool) {
 	reg, err := registry.Load()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "load registry:", err)
