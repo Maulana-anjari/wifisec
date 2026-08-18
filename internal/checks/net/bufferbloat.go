@@ -32,11 +32,18 @@ func (c BufferbloatCheck) Run(ctx stdcontext.Context, cc checks.CheckContext) mo
 	if err := cc.Counter.Add(c.def.ID, c.def.EstimatedPackets); err != nil {
 		return checks.NewErrorCheck(c.def, err, start)
 	}
-	idleN := 5
-	loadedN := c.def.EstimatedPackets - idleN
-	if loadedN < 1 {
-		loadedN = 1
+	// Guard against degenerate budget: need at least 2 packets (1 idle + 1 loaded).
+	if c.def.EstimatedPackets < 2 {
+		return model.Check{
+			ID: c.def.ID, Layer: c.def.Layer, Title: c.def.Title, ProfileRequired: c.def.ProfileRequired,
+			Status: model.StatusInconclusive, Confidence: model.ConfidenceLow,
+			Control:     model.Control{Performed: false, Reason: "budget_too_small"},
+			PacketsSent: c.def.EstimatedPackets, DurationMS: time.Since(start).Milliseconds(),
+		}
 	}
+	// Ensure idleN + loadedN <= EstimatedPackets structurally (not just for shipped value).
+	idleN := min(5, c.def.EstimatedPackets-1)
+	loadedN := c.def.EstimatedPackets - idleN
 
 	idleSamples, _, _ := sampleTCP(ctx, internetTarget, idleN, 3*time.Second)
 	loadedSamples := sampleConcurrent(ctx, internetTarget, loadedN, 3*time.Second)
