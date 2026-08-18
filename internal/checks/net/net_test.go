@@ -218,3 +218,13 @@ func TestCaptivePortalCleanNetworkIsNormal(t *testing.T) {
 		t.Errorf("Status = %v, want normal on a clean network (example.com must be reachable): %#v", got.Status, got.Observed)
 	}
 }
+
+func TestBufferbloatDoesNotError(t *testing.T) {
+	def := registry.CheckDefinition{ID: "net.bufferbloat", ProfileRequired: model.ProfileStandard, EstimatedPackets: 20}
+	c := NewBufferbloatCheck(def)
+	cc := testCC()
+	got := c.Run(context.Background(), cc)
+	if got.Status == model.StatusError {
+		t.Errorf("Status = error: %s", got.Error)
+	}
+}
