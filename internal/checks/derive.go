@@ -27,7 +27,17 @@ func DeriveLatencyChecks(latency model.Check, jitterDef, lossDef registry.CheckD
 		j, l := base(jitterDef), base(lossDef)
 		j.Status, l.Status = model.StatusInconclusive, model.StatusInconclusive
 		j.Confidence, l.Confidence = model.ConfidenceLow, model.ConfidenceLow
-		j.Control = model.Control{Performed: false, Reason: "latency_internet_" + string(latency.Status)}
+		// Inherit net.latency_internet's own Control.Reason (e.g.
+		// "captive_portal_detected" per spec §6.3, or
+		// "internet_unreachable") so a downstream reader learns the
+		// actual cause instead of a generic status-derived string. Fall
+		// back to the old synthesized reason only if the source Check
+		// somehow left Reason empty, so Control.Reason is never blank.
+		reason := latency.Control.Reason
+		if reason == "" {
+			reason = "latency_internet_" + string(latency.Status)
+		}
+		j.Control = model.Control{Performed: false, Reason: reason}
 		l.Control = j.Control
 		return j, l
 	}

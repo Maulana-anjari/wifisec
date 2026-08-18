@@ -106,105 +106,41 @@ func TestIPv6CheckDoesNotErrorWhenAAAAAbsent(t *testing.T) {
 	}
 }
 
-func TestLatencyGatewayFallsBackToPort443(t *testing.T) {
-	// Set up a listener on port 443 only (port 80 will be refused).
-	ln443, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer ln443.Close()
-	go func() {
-		for {
-			c, err := ln443.Accept()
-			if err != nil {
-				return
-			}
-			c.Close()
-		}
-	}()
-
-	// If port 443 is already in use system-wide, skip this test.
-	dial := net.Dialer{Timeout: 1 * time.Second}
-	testConn, err := dial.Dial("tcp", "127.0.0.1:443")
-	if err == nil {
-		testConn.Close()
-	} else {
-		t.Skipf("Port 443 not available for test: %v", err)
-	}
-
-	// For a more reliable test, we simulate by using the actual listener port.
-	// We can't easily bind to both 80 and 443 without privileges, so we test
-	// the logic by creating a gateway address that will trigger the fallback.
-	// Since we can't bind to port 80, we use port 1 (which will be refused).
-	def := registry.CheckDefinition{ID: "net.latency_gateway", ProfileRequired: model.ProfileStandard, EstimatedPackets: 3}
-	c := NewLatencyGatewayCheck(def)
-	cc := testCC()
-
-	// Set gateway to an address that will fail on port 80 but succeed on port 443.
-	// We use 127.0.0.1 and let the actual listener on port 443 (if available) catch it.
-	// This is a simplified test; the real scenario requires port 80 to be refused.
-	testAddr := net.JoinHostPort("127.0.0.1", "1") // Port 1 will be refused
-	cc.Platform = fakeAdapter{netConfig: platform.NetConfig{Gateway: testAddr}}
-
-	// Since port 1 will be refused and port 443 will also fail (we didn't bind to 443),
-	// this tests that the fallback runs (samples will be empty from both rounds).
-	got := c.Run(context.Background(), cc)
-
-	// We expect inconclusive because neither port provides a service.
-	if got.Status != model.StatusInconclusive {
-		t.Errorf("Status = %v, want inconclusive when both ports fail", got.Status)
-	}
-	// Verify that PacketsSent reflects both rounds: 3 for port 80 + 3 for port 443 = 6.
-	if got.PacketsSent != 6 {
-		t.Errorf("PacketsSent = %d, want 6 (accumulated from both fallback rounds)", got.PacketsSent)
-	}
-	// Verify that the counter was called twice (once for each round).
-	if cc.Counter.Total() != 6 {
-		t.Errorf("Counter.Total() = %d, want 6 (two Add calls of 3 each)", cc.Counter.Total())
-	}
-}
-
+// TestLatencyGatewayAccumulatesPacketsCrossRounds exercises the real
+// port-80-then-443 fallback in latency.go: cfg.Gateway is a bare host
+// (net.JoinHostPort builds "127.0.0.1:80" and "127.0.0.1:443" from it,
+// per Fix 1 — a plain string-concat would have produced the malformed,
+// parse-time-failing "127.0.0.1:80:80"). Both are privileged ports this
+// unprivileged test process cannot itself be listening on, so both
+// rounds are genuinely refused, the fallback genuinely fires, and we
+// can assert packets/samples accumulate across both rounds rather than
+// resetting.
 func TestLatencyGatewayAccumulatesPacketsCrossRounds(t *testing.T) {
-	// Set up a listener for port 443 only (port 80 will fail).
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer ln.Close()
-	go func() {
-		for {
-			c, err := ln.Accept()
-			if err != nil {
-				return
-			}
-			c.Close()
-		}
-	}()
-
 	def := registry.CheckDefinition{ID: "net.latency_gateway", ProfileRequired: model.ProfileStandard, EstimatedPackets: 4}
 	c := NewLatencyGatewayCheck(def)
 	cc := testCC()
 
-	// Use a gateway address that will fail on port 80 (port 1, refused),
-	// then fall back and fail on port 443 (not listening on 127.0.0.1:443).
-	cc.Platform = fakeAdapter{netConfig: platform.NetConfig{Gateway: "127.0.0.1:1"}}
+	cc.Platform = fakeAdapter{netConfig: platform.NetConfig{Gateway: "127.0.0.1"}}
 
 	got := c.Run(context.Background(), cc)
 
-	// Port 1 is refused, port 443 on 127.0.0.1 is also refused (we didn't bind to it),
-	// so both rounds fail and we get inconclusive.
+	// Nothing listens on 127.0.0.1:80 or 127.0.0.1:443 in the test
+	// environment, so both rounds fail and the check is inconclusive.
 	if got.Status != model.StatusInconclusive {
-		t.Errorf("Status = %v, want inconclusive", got.Status)
+		t.Errorf("Status = %v, want inconclusive when both ports fail", got.Status)
 	}
 
-	// Verify packets accumulated: 4 for first round + 4 for second round = 8.
+	// Verify packets accumulated: 4 for the port-80 round + 4 for the
+	// port-443 fallback round = 8, not reset to 4.
 	if got.PacketsSent != 8 {
-		t.Errorf("PacketsSent = %d, want 8 (4 + 4 from two rounds)", got.PacketsSent)
+		t.Errorf("PacketsSent = %d, want 8 (4 + 4 from two fallback rounds)", got.PacketsSent)
 	}
 
-	// Verify counter reflects both rounds.
-	totalCounter := cc.Counter.Total()
-	if totalCounter != 8 {
+	// The counter must reflect both Counter.Add calls (one per round),
+	// which is exactly why net.latency_gateway reserves double its
+	// registry EstimatedPackets in the worst case (see
+	// TestStandardProfileBudgetCoversRealWorstCaseDemand).
+	if totalCounter := cc.Counter.Total(); totalCounter != 8 {
 		t.Errorf("Counter.Total() = %d, want 8", totalCounter)
 	}
 }

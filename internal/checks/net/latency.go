@@ -2,6 +2,7 @@ package net
 
 import (
 	stdcontext "context"
+	stdnet "net"
 	"time"
 
 	"github.com/Maulana-anjari/wifisec/internal/checks"
@@ -44,13 +45,13 @@ func (c LatencyGatewayCheck) Run(ctx stdcontext.Context, cc checks.CheckContext)
 	// — the gateway answered ARP/routing just fine, it's just not
 	// listening on either port. That's an honest inconclusive, not an
 	// error (spec P3).
-	samples, sent, lost := sampleTCP(ctx, cfg.Gateway+":80", c.def.EstimatedPackets, 2*time.Second)
+	samples, sent, lost := sampleTCP(ctx, stdnet.JoinHostPort(cfg.Gateway, "80"), c.def.EstimatedPackets, 2*time.Second)
 	if len(samples) == 0 {
 		// Reserve packets for fallback to port 443.
 		if err := cc.Counter.Add(c.def.ID, c.def.EstimatedPackets); err != nil {
 			return checks.NewErrorCheck(c.def, err, start)
 		}
-		samples443, sent443, lost443 := sampleTCP(ctx, cfg.Gateway+":443", c.def.EstimatedPackets, 2*time.Second)
+		samples443, sent443, lost443 := sampleTCP(ctx, stdnet.JoinHostPort(cfg.Gateway, "443"), c.def.EstimatedPackets, 2*time.Second)
 		samples = samples443
 		sent += sent443
 		lost += lost443
