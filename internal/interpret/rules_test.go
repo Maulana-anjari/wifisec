@@ -102,3 +102,82 @@ func TestApplyFindingsPassValidation(t *testing.T) {
 		}
 	}
 }
+
+func hasFinding(findings []model.Finding, id string) bool {
+	for _, f := range findings {
+		if f.ID == id {
+			return true
+		}
+	}
+	return false
+}
+
+func TestTLSInterceptionRequiresBothCertMismatchAndForeignCA(t *testing.T) {
+	checks := []model.Check{
+		{ID: "tls.cert_issuer", Status: model.StatusAnomalous},
+		{ID: "local.trust_store", Status: model.StatusAnomalous, Observed: map[string]any{"non_public_ca_found": true}},
+	}
+	findings, _ := Apply(checks)
+	if !hasFinding(findings, "tls_interception") {
+		t.Error("expected tls_interception finding when both conditions hold")
+	}
+}
+
+func TestTLSInterceptionAbsentWhenOnlyCertMismatches(t *testing.T) {
+	checks := []model.Check{{ID: "tls.cert_issuer", Status: model.StatusAnomalous}}
+	findings, _ := Apply(checks)
+	if hasFinding(findings, "tls_interception") {
+		t.Error("tls_interception must require local.trust_store corroboration too")
+	}
+}
+
+func TestDNSManipulationFromCompareDoH(t *testing.T) {
+	checks := []model.Check{{ID: "dns.compare_doh", Status: model.StatusAnomalous}}
+	findings, _ := Apply(checks)
+	if !hasFinding(findings, "dns_manipulation") {
+		t.Error("expected dns_manipulation finding")
+	}
+}
+
+func TestTransparentDNSProxyFromTransparentProxyCheck(t *testing.T) {
+	checks := []model.Check{{ID: "dns.transparent_proxy", Status: model.StatusAnomalous}}
+	findings, _ := Apply(checks)
+	if !hasFinding(findings, "transparent_dns_proxy") {
+		t.Error("expected transparent_dns_proxy finding")
+	}
+}
+
+func TestSystemProxyForcedFromProxySystemCheck(t *testing.T) {
+	checks := []model.Check{{ID: "local.proxy_system", Status: model.StatusAnomalous}}
+	findings, _ := Apply(checks)
+	if !hasFinding(findings, "system_proxy_forced") {
+		t.Error("expected system_proxy_forced finding")
+	}
+}
+
+func TestCaptivePortalFindingFromCaptivePortalCheck(t *testing.T) {
+	checks := []model.Check{{ID: "net.captive_portal", Status: model.StatusAnomalous}}
+	findings, _ := Apply(checks)
+	if !hasFinding(findings, "captive_portal") {
+		t.Error("expected captive_portal finding")
+	}
+}
+
+func TestPoorQualityFromEitherJitterOrPacketLoss(t *testing.T) {
+	jitterOnly := []model.Check{{ID: "net.jitter", Status: model.StatusAnomalous}, {ID: "net.packet_loss", Status: model.StatusNormal}}
+	if findings, _ := Apply(jitterOnly); !hasFinding(findings, "poor_quality") {
+		t.Error("expected poor_quality from jitter alone")
+	}
+	lossOnly := []model.Check{{ID: "net.jitter", Status: model.StatusNormal}, {ID: "net.packet_loss", Status: model.StatusAnomalous}}
+	if findings, _ := Apply(lossOnly); !hasFinding(findings, "poor_quality") {
+		t.Error("expected poor_quality from packet_loss alone")
+	}
+}
+
+func TestBufferbloatFindingFromBufferbloatCheck(t *testing.T) {
+	checks := []model.Check{{ID: "net.bufferbloat", Status: model.StatusAnomalous}}
+	findings, _ := Apply(checks)
+	if !hasFinding(findings, "bufferbloat") {
+		t.Error("expected bufferbloat finding")
+	}
+}

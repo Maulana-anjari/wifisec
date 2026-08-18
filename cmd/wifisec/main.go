@@ -13,7 +13,10 @@ import (
 	pflag "github.com/spf13/pflag"
 
 	"github.com/Maulana-anjari/wifisec/internal/checks"
+	"github.com/Maulana-anjari/wifisec/internal/checks/dns"
 	"github.com/Maulana-anjari/wifisec/internal/checks/local"
+	netchecks "github.com/Maulana-anjari/wifisec/internal/checks/net"
+	"github.com/Maulana-anjari/wifisec/internal/checks/tls"
 	"github.com/Maulana-anjari/wifisec/internal/checks/wifi"
 	"github.com/Maulana-anjari/wifisec/internal/guard"
 	"github.com/Maulana-anjari/wifisec/internal/interpret"
@@ -25,9 +28,10 @@ import (
 )
 
 // main has three modes:
-//   wifisec <result.json>              loads a saved/fixture Result and renders it (M1, kept for manual TUI review)
-//   wifisec known-networks add         adds the current network to the whitelist (M3, spec §9.1/G7)
-//   wifisec [--profile P] [--i-own-this-network]  runs real checks at the requested profile (M2/M3)
+//
+//	wifisec <result.json>              loads a saved/fixture Result and renders it (M1, kept for manual TUI review)
+//	wifisec known-networks add         adds the current network to the whitelist (M3, spec §9.1/G7)
+//	wifisec [--profile P] [--i-own-this-network]  runs real checks at the requested profile (M2/M3)
 func main() {
 	if len(os.Args) >= 2 && !strings.HasPrefix(os.Args[1], "-") {
 		switch os.Args[1] {
@@ -132,7 +136,27 @@ func runReal(requested model.Profile, ownsNetwork bool) {
 	}
 
 	defs := reg.Filter(effective)
-	builtCheckers, unimplemented := buildCheckers(defs)
+
+	// net.jitter and net.packet_loss are derived from net.latency_internet
+	// (spec §6.3: "dari latency", 0 additional packets) — they never go
+	// through buildCheckers/the normal Checker dispatch path. Pull their
+	// definitions out of defs (if the profile allows them) before handing
+	// the rest to buildCheckers, so they don't show up as "unimplemented".
+	var jitterDef, packetLossDef registry.CheckDefinition
+	haveJitter, havePacketLoss := false, false
+	var remainingDefs []registry.CheckDefinition
+	for _, d := range defs {
+		switch d.ID {
+		case "net.jitter":
+			jitterDef, haveJitter = d, true
+		case "net.packet_loss":
+			packetLossDef, havePacketLoss = d, true
+		default:
+			remainingDefs = append(remainingDefs, d)
+		}
+	}
+
+	builtCheckers, unimplemented := buildCheckers(remainingDefs)
 	for _, id := range unimplemented {
 		fmt.Fprintf(os.Stderr, "warning: %s has no implementation yet, skipping\n", id)
 	}
@@ -149,11 +173,13 @@ func runReal(requested model.Profile, ownsNetwork bool) {
 		unimplementedIDs[id] = true
 	}
 	handledIDs := make(map[string]bool, len(defs))
-	for _, d := range defs {
+	for _, d := range remainingDefs {
 		if !unimplementedIDs[d.ID] {
 			handledIDs[d.ID] = true
 		}
 	}
+	handledIDs["net.jitter"] = haveJitter
+	handledIDs["net.packet_loss"] = havePacketLoss
 	var skipped []model.Check
 	for _, def := range reg.Checks {
 		if handledIDs[def.ID] {
@@ -202,8 +228,57 @@ func runReal(requested model.Profile, ownsNetwork bool) {
 
 	start := time.Now()
 	results := append([]model.Check{}, skipped...)
-	for c := range checks.Run(ctx, builtCheckers, cc) {
-		results = append(results, c)
+	// net.captive_portal, if present, gates the rest of the standard
+	// profile (spec §6.3) — RunGated runs it first and short-circuits
+	// everything else to inconclusive if it trips. Checks outside the
+	// standard tier (passive/minimal) are NOT part of "check lain di
+	// profil ini" and must keep running normally even if the portal is
+	// up, so they're excluded from the gated batch and run separately.
+	var gatedBatch, ungatedBatch []checks.Checker
+	for _, checker := range builtCheckers {
+		if checker.Definition().ProfileRequired == model.ProfileStandard {
+			gatedBatch = append(gatedBatch, checker)
+		} else {
+			ungatedBatch = append(ungatedBatch, checker)
+		}
+	}
+	// gatedBatch and ungatedBatch are independent (the ungated,
+	// passive/minimal-tier batch never depends on the captive-portal
+	// gate's result), so both channels are started immediately and
+	// drained concurrently. Draining them sequentially instead would let
+	// a slow standard-tier run (captive_portal's 5s timeout plus up to
+	// 10s per standard checker) starve the near-instant passive/minimal
+	// checks of their share of the shared 30s outer context deadline.
+	var latencyResult model.Check
+	haveLatencyResult := false
+	gatedCh := checks.RunGated(ctx, gatedBatch, cc, "net.captive_portal",
+		func(c model.Check) bool { return c.Status == model.StatusAnomalous }, "captive_portal_detected")
+	ungatedCh := checks.Run(ctx, ungatedBatch, cc)
+	for gatedCh != nil || ungatedCh != nil {
+		select {
+		case c, ok := <-gatedCh:
+			if !ok {
+				gatedCh = nil
+				continue
+			}
+			if c.ID == "net.latency_internet" {
+				latencyResult, haveLatencyResult = c, true
+			}
+			results = append(results, c)
+		case c, ok := <-ungatedCh:
+			if !ok {
+				ungatedCh = nil
+				continue
+			}
+			results = append(results, c)
+		}
+	}
+	if haveJitter && havePacketLoss {
+		if !haveLatencyResult {
+			latencyResult = model.Check{ID: "net.latency_internet", Status: model.StatusInconclusive}
+		}
+		jitter, packetLoss := checks.DeriveLatencyChecks(latencyResult, jitterDef, packetLossDef)
+		results = append(results, jitter, packetLoss)
 	}
 	// Stop the BSSID watcher goroutine now, not just via the deferred
 	// cancel(). runReal ends in os.Exit (launchTUI runs an interactive
@@ -223,7 +298,7 @@ func runReal(requested model.Profile, ownsNetwork bool) {
 
 	result := model.Result{
 		SchemaVersion: model.SchemaVersionV1,
-		ToolVersion:   "0.3.0-m3",
+		ToolVersion:   "0.4.0-m4",
 		RunID:         fmt.Sprintf("run-%d", time.Now().UnixNano()),
 		StartedAt:     start,
 		DurationMS:    time.Since(start).Milliseconds(),
@@ -276,19 +351,28 @@ func launchTUI(result model.Result) {
 // them back from internal/checks would be a cycle.
 func buildCheckers(defs []registry.CheckDefinition) (built []checks.Checker, unimplemented []string) {
 	factory := map[string]func(registry.CheckDefinition) checks.Checker{
-		"local.interface":    func(d registry.CheckDefinition) checks.Checker { return local.NewInterfaceCheck(d) },
-		"local.gateway":      func(d registry.CheckDefinition) checks.Checker { return local.NewGatewayCheck(d) },
-		"local.dns_servers":  func(d registry.CheckDefinition) checks.Checker { return local.NewDNSServersCheck(d) },
-		"local.routing":      func(d registry.CheckDefinition) checks.Checker { return local.NewRoutingCheck(d) },
-		"local.mtu":          func(d registry.CheckDefinition) checks.Checker { return local.NewMTUCheck(d) },
-		"local.proxy_system": func(d registry.CheckDefinition) checks.Checker { return local.NewProxySystemCheck(d) },
-		"local.trust_store":  func(d registry.CheckDefinition) checks.Checker { return local.NewTrustStoreCheck(d) },
-		"wifi.security":      func(d registry.CheckDefinition) checks.Checker { return wifi.NewSecurityCheck(d) },
-		"wifi.pmf":           func(d registry.CheckDefinition) checks.Checker { return wifi.NewPMFCheck(d) },
-		"wifi.signal":        func(d registry.CheckDefinition) checks.Checker { return wifi.NewSignalCheck(d) },
-		"wifi.channel":       func(d registry.CheckDefinition) checks.Checker { return wifi.NewChannelCheck(d) },
-		"wifi.bssid_vendor":  func(d registry.CheckDefinition) checks.Checker { return wifi.NewBSSIDVendorCheck(d) },
-		"wifi.link_speed":    func(d registry.CheckDefinition) checks.Checker { return wifi.NewLinkSpeedCheck(d) },
+		"local.interface":       func(d registry.CheckDefinition) checks.Checker { return local.NewInterfaceCheck(d) },
+		"local.gateway":         func(d registry.CheckDefinition) checks.Checker { return local.NewGatewayCheck(d) },
+		"local.dns_servers":     func(d registry.CheckDefinition) checks.Checker { return local.NewDNSServersCheck(d) },
+		"local.routing":         func(d registry.CheckDefinition) checks.Checker { return local.NewRoutingCheck(d) },
+		"local.mtu":             func(d registry.CheckDefinition) checks.Checker { return local.NewMTUCheck(d) },
+		"local.proxy_system":    func(d registry.CheckDefinition) checks.Checker { return local.NewProxySystemCheck(d) },
+		"local.trust_store":     func(d registry.CheckDefinition) checks.Checker { return local.NewTrustStoreCheck(d) },
+		"wifi.security":         func(d registry.CheckDefinition) checks.Checker { return wifi.NewSecurityCheck(d) },
+		"wifi.pmf":              func(d registry.CheckDefinition) checks.Checker { return wifi.NewPMFCheck(d) },
+		"wifi.signal":           func(d registry.CheckDefinition) checks.Checker { return wifi.NewSignalCheck(d) },
+		"wifi.channel":          func(d registry.CheckDefinition) checks.Checker { return wifi.NewChannelCheck(d) },
+		"wifi.bssid_vendor":     func(d registry.CheckDefinition) checks.Checker { return wifi.NewBSSIDVendorCheck(d) },
+		"wifi.link_speed":       func(d registry.CheckDefinition) checks.Checker { return wifi.NewLinkSpeedCheck(d) },
+		"dns.resolve_basic":     func(d registry.CheckDefinition) checks.Checker { return dns.NewResolveBasicCheck(d) },
+		"tls.cert_issuer":       func(d registry.CheckDefinition) checks.Checker { return tls.NewCertIssuerCheck(d) },
+		"net.captive_portal":    func(d registry.CheckDefinition) checks.Checker { return netchecks.NewCaptivePortalCheck(d) },
+		"net.latency_gateway":   func(d registry.CheckDefinition) checks.Checker { return netchecks.NewLatencyGatewayCheck(d) },
+		"net.latency_internet":  func(d registry.CheckDefinition) checks.Checker { return netchecks.NewLatencyInternetCheck(d) },
+		"dns.compare_doh":       func(d registry.CheckDefinition) checks.Checker { return dns.NewCompareDoHCheck(d) },
+		"dns.transparent_proxy": func(d registry.CheckDefinition) checks.Checker { return dns.NewTransparentProxyCheck(d) },
+		"net.bufferbloat":       func(d registry.CheckDefinition) checks.Checker { return netchecks.NewBufferbloatCheck(d) },
+		"net.ipv6":              func(d registry.CheckDefinition) checks.Checker { return netchecks.NewIPv6Check(d) },
 	}
 	for _, def := range defs {
 		ctor, ok := factory[def.ID]
