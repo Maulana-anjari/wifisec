@@ -1,0 +1,21 @@
+cmd/wifisec/confirm_test.go
+  s_4a2f8b27332225::t_79af5100f09b56 59-73
+cmd/wifisec/confirm.go
+  s_4a2f8b27332225::t_fa4494af1e09f1 72-74
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "71bf4a531430c0b654c7f4d0e846e14039642254",
+  "prompts": {},
+  "sessions": {
+    "s_4a2f8b27332225": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260b6f6e-315a-4ea2-8999-7748e825f1c8",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Maulana Anjari Anggorokasih <maulana17anjari@gmail.com>"
+    }
+  }
+}
