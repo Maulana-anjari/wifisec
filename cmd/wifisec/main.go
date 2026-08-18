@@ -126,19 +126,36 @@ func runReal(requested model.Profile, ownsNetwork bool) {
 		fmt.Fprintf(os.Stderr, "warning: %s has no implementation yet, skipping\n", id)
 	}
 
-	passiveOnlyIDs := make(map[string]bool, len(defs))
+	// handledIDs are the checks that actually became a runnable Checker
+	// below — NOT simply everything reg.Filter allowed. defs also
+	// contains IDs buildCheckers couldn't map to a factory
+	// (unimplemented); those must still surface as Skipped entries (with
+	// their own Control.Reason) instead of silently vanishing from
+	// Result.Checks / Verdict.BlindSpots, which would violate P4 (spec
+	// §2, "a Verdict that doesn't list what wasn't checked is a bug").
+	unimplementedIDs := make(map[string]bool, len(unimplemented))
+	for _, id := range unimplemented {
+		unimplementedIDs[id] = true
+	}
+	handledIDs := make(map[string]bool, len(defs))
 	for _, d := range defs {
-		passiveOnlyIDs[d.ID] = true
+		if !unimplementedIDs[d.ID] {
+			handledIDs[d.ID] = true
+		}
 	}
 	var skipped []model.Check
 	for _, def := range reg.Checks {
-		if passiveOnlyIDs[def.ID] {
+		if handledIDs[def.ID] {
 			continue
+		}
+		reason := "profile_does_not_allow"
+		if unimplementedIDs[def.ID] {
+			reason = "not_implemented"
 		}
 		skipped = append(skipped, model.Check{
 			ID: def.ID, Layer: def.Layer, Title: def.Title, ProfileRequired: def.ProfileRequired,
 			Status: model.StatusSkipped, Confidence: model.ConfidenceLow,
-			Control: model.Control{Performed: false, Reason: "profile_does_not_allow"},
+			Control: model.Control{Performed: false, Reason: reason},
 		})
 	}
 
@@ -177,6 +194,15 @@ func runReal(requested model.Profile, ownsNetwork bool) {
 	for c := range checks.Run(ctx, builtCheckers, cc) {
 		results = append(results, c)
 	}
+	// Stop the BSSID watcher goroutine now, not just via the deferred
+	// cancel(). runReal ends in os.Exit (launchTUI runs an interactive
+	// TUI session afterward), and os.Exit never runs deferred functions
+	// — so without this explicit call the watcher would keep polling
+	// platform.WiFiInfo() (nmcli fork on Linux) every 2s for the rest of
+	// the process's life with no one left observing it. cancel is a
+	// context.CancelFunc, safe to call more than once, so the deferred
+	// call above stays as a harmless no-op second call.
+	cancel()
 
 	if downgraded.Load() {
 		effective = model.ProfilePassive
