@@ -208,3 +208,13 @@ func TestLatencyGatewayAccumulatesPacketsCrossRounds(t *testing.T) {
 		t.Errorf("Counter.Total() = %d, want 8", totalCounter)
 	}
 }
+
+func TestCaptivePortalCleanNetworkIsNormal(t *testing.T) {
+	def := registry.CheckDefinition{ID: "net.captive_portal", ProfileRequired: model.ProfileStandard, EstimatedPackets: 2}
+	c := NewCaptivePortalCheck(def)
+	cc := testCC()
+	got := c.Run(context.Background(), cc)
+	if got.Status != model.StatusNormal {
+		t.Errorf("Status = %v, want normal on a clean network (example.com must be reachable): %#v", got.Status, got.Observed)
+	}
+}
