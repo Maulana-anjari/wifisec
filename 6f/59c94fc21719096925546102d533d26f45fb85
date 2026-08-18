@@ -1,0 +1,23 @@
+docs/superpowers/plans/2026-08-18-milestone-3-profile-system.md
+  s_4a2f8b27332225::t_ed5e6ffdfee4ea 1336-1341,1343,1353
+  s_4a2f8b27332225::t_bb03729e97e42a 1211
+  s_4a2f8b27332225::t_66be4998c1c054 1289
+  s_4a2f8b27332225::t_92080d5423c11b 1-1163,1175-1176,1178-1187,1189-1210,1212-1288,1290-1335,1342,1344-1352,1354-1387
+  s_4a2f8b27332225::t_478c14d21670bf 1164-1174,1177,1188
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "6f59c94fc21719096925546102d533d26f45fb85",
+  "prompts": {},
+  "sessions": {
+    "s_4a2f8b27332225": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260b6f6e-315a-4ea2-8999-7748e825f1c8",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Maulana Anjari Anggorokasih <maulana17anjari@gmail.com>"
+    }
+  }
+}
