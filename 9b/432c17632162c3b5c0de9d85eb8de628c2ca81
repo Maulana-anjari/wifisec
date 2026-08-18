@@ -1,0 +1,36 @@
+internal/checks/dns/transparent_proxy.go
+  s_4a2f8b27332225::t_0f6fffef2c8660 30-31
+internal/checks/dns/resolve.go
+  s_4a2f8b27332225::t_fec8ba1e34b3d3 86,88-90,96
+  s_4a2f8b27332225::t_18f63bb71dd046 27-29,31,34
+  s_4a2f8b27332225::t_d3cb543ef9fb13 22-25
+  s_4a2f8b27332225::t_0eeea282aac80f 74
+  s_4a2f8b27332225::t_b4098360cd7163 26
+go.mod
+  s_4a2f8b27332225::t_5a482ac2e85c7a 8
+internal/checks/dns/compare.go
+  s_4a2f8b27332225::t_6376651d0cea9d 50-51,53-56,61
+internal/checks/dns/dns_test.go
+  s_4a2f8b27332225::t_110e08ddff1c32 4
+  s_4a2f8b27332225::t_1cebdba35aa2d0 73-77
+  s_4a2f8b27332225::t_4630ce84b6054f 33,42,55,64,80
+  s_4a2f8b27332225::t_4337404d7bd191 69-72,78-79,81-87
+go.sum
+  s_4a2f8b27332225::t_35592a263f5eec 17-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "9b432c17632162c3b5c0de9d85eb8de628c2ca81",
+  "prompts": {},
+  "sessions": {
+    "s_4a2f8b27332225": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260b6f6e-315a-4ea2-8999-7748e825f1c8",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Maulana Anjari Anggorokasih <maulana17anjari@gmail.com>"
+    }
+  }
+}
