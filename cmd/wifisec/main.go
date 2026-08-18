@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -20,6 +21,7 @@ import (
 	"github.com/Maulana-anjari/wifisec/internal/platform"
 	"github.com/Maulana-anjari/wifisec/internal/registry"
 	"github.com/Maulana-anjari/wifisec/internal/tui"
+	"github.com/Maulana-anjari/wifisec/internal/whitelist"
 )
 
 // main has three modes:
@@ -83,60 +85,92 @@ func runReal(requested model.Profile, ownsNetwork bool) {
 	reg, err := registry.Load()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "load registry:", err)
-		os.Exit(1)
+		os.Exit(3)
 	}
 
-	defs := reg.Filter(model.ProfilePassive)
+	// Determine KnownNetwork before resolving confirmation steps, since
+	// G5 depends on it: read the current WiFi association once, up
+	// front, zero-packet (spec §4.7).
+	adapter := platform.New()
+	wifiInfo, _ := adapter.WiFiInfo()
+	netInfo := model.NewNetworkInfo(wifiInfo.SSID, wifiInfo.BSSID)
+
+	list, err := whitelist.Load()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "load whitelist:", err)
+		os.Exit(3)
+	}
+	netInfo.KnownNetwork = wifiInfo.Available && list.Contains(netInfo.BSSIDHash)
+	netInfo.Band = wifiInfo.Band
+	netInfo.Channel = wifiInfo.Channel
+	netInfo.Security = wifiInfo.Security
+	netInfo.PMF = wifiInfo.PMF
+
+	steps, err := guard.Resolve(guard.ProfileRequest{Requested: requested, OwnsNetwork: ownsNetwork, KnownNetwork: netInfo.KnownNetwork})
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(4)
+	}
+
+	effective := requested
+	if len(steps) > 0 {
+		if !runConfirm(requested, netInfo.KnownNetwork, steps) {
+			fmt.Fprintln(os.Stderr, "dibatalkan: konfirmasi profil tidak diselesaikan")
+			os.Exit(4)
+		}
+	}
+
+	defs := reg.Filter(effective)
 	builtCheckers, unimplemented := buildCheckers(defs)
 	for _, id := range unimplemented {
 		fmt.Fprintf(os.Stderr, "warning: %s has no implementation yet, skipping\n", id)
 	}
-	if len(unimplemented) > 0 {
-		// All 13 passive checks have real implementations as of this
-		// milestone, so this should never trigger in practice — if it
-		// does, it's a registry/factory-map drift bug the user needs to
-		// know about immediately, not a soft warning they can miss.
-		fmt.Fprintln(os.Stderr, "error: one or more passive-profile checks have no implementation; refusing to produce an incomplete verdict")
-		os.Exit(1)
-	}
 
-	// Every check the passive profile does NOT allow must still show up
-	// as an explicit skipped result (spec P4: a Verdict that doesn't
-	// list what wasn't checked is a bug) — reg.Filter above only
-	// returns what's runnable, so walk the full registry for the rest.
-	passiveIDs := make(map[string]bool, len(defs))
+	passiveOnlyIDs := make(map[string]bool, len(defs))
 	for _, d := range defs {
-		passiveIDs[d.ID] = true
+		passiveOnlyIDs[d.ID] = true
 	}
 	var skipped []model.Check
 	for _, def := range reg.Checks {
-		if passiveIDs[def.ID] {
+		if passiveOnlyIDs[def.ID] {
 			continue
 		}
 		skipped = append(skipped, model.Check{
-			ID:              def.ID,
-			Layer:           def.Layer,
-			Title:           def.Title,
-			ProfileRequired: def.ProfileRequired,
-			Status:          model.StatusSkipped,
-			Confidence:      model.ConfidenceLow,
-			Control:         model.Control{Performed: false, Reason: "profile_does_not_allow"},
-			PacketsSent:     0,
+			ID: def.ID, Layer: def.Layer, Title: def.Title, ProfileRequired: def.ProfileRequired,
+			Status: model.StatusSkipped, Confidence: model.ConfidenceLow,
+			Control: model.Control{Performed: false, Reason: "profile_does_not_allow"},
 		})
 	}
 
 	cc := checks.CheckContext{
-		Platform: platform.New(),
-		Counter:  guard.NewPacketCounter(model.ProfilePassive.EstimatedPackets()),
+		Platform: adapter,
+		Counter:  guard.NewPacketCounter(effective.EstimatedPackets()),
 		Timeout:  10 * time.Second,
 	}
 
-	// Outer budget for the whole run (all checkers combined); cc.Timeout
-	// above governs each individual check via runner.go's per-checker
-	// context.WithTimeout, so a single slow check can't consume the
-	// entire 30s budget by itself.
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+
+	// G4: watch for a BSSID change during the run. On change, downgrade
+	// the reported profile to passive and cancel the run — in-flight
+	// checkers observe ctx's cancellation via runner.go's per-checker
+	// context.WithTimeout wrapping (spec G4). downgraded is written from
+	// the watcher goroutine and read from this goroutine after the loop
+	// below, so it must be an atomic.Bool, not a plain bool — a plain
+	// bool here is a real data race (go test -race catches it): nothing
+	// synchronizes the write in the watcher goroutine with the read
+	// after the loop, since the loop only observes checks.Run's channel
+	// closing, not ctx.Done() directly. Reading ctx.Err() instead would
+	// NOT be equivalent — the outer 30s context.WithTimeout above can
+	// also make ctx.Err() non-nil on a plain timeout that has nothing to
+	// do with a BSSID change, which must NOT downgrade the profile.
+	var downgraded atomic.Bool
+	if wifiInfo.Available {
+		go guard.Watch(ctx, adapter, wifiInfo.BSSID, 2*time.Second, func(string) {
+			downgraded.Store(true)
+			cancel()
+		})
+	}
 
 	start := time.Now()
 	results := append([]model.Check{}, skipped...)
@@ -144,20 +178,50 @@ func runReal(requested model.Profile, ownsNetwork bool) {
 		results = append(results, c)
 	}
 
+	if downgraded.Load() {
+		effective = model.ProfilePassive
+	}
+
 	findings, verdict := interpret.Apply(results)
 
 	result := model.Result{
 		SchemaVersion: model.SchemaVersionV1,
-		ToolVersion:   "0.2.0-m2",
+		ToolVersion:   "0.3.0-m3",
 		RunID:         fmt.Sprintf("run-%d", time.Now().UnixNano()),
 		StartedAt:     start,
 		DurationMS:    time.Since(start).Milliseconds(),
-		Profile:       model.ProfilePassive,
+		Profile:       effective,
+		Network:       netInfo,
 		Checks:        results,
 		Findings:      findings,
 		Verdict:       verdict,
 	}
 	launchTUI(result)
+	os.Exit(exitCodeFor(result))
+}
+
+// exitCodeFor computes the process exit code from the final result
+// (spec §9.2). Findings are already severity-classified by
+// interpret.Apply, so this just finds the worst one present.
+func exitCodeFor(result model.Result) int {
+	hasCritical := false
+	hasWarning := false
+	for _, f := range result.Findings {
+		switch f.Severity {
+		case model.SeverityCritical:
+			hasCritical = true
+		case model.SeverityWarning:
+			hasWarning = true
+		}
+	}
+	switch {
+	case hasCritical:
+		return 2
+	case hasWarning:
+		return 1
+	default:
+		return 0
+	}
 }
 
 func launchTUI(result model.Result) {
