@@ -37,16 +37,29 @@ func main() {
 				return
 			}
 			fmt.Fprintln(os.Stderr, "usage: wifisec known-networks add")
-			os.Exit(3)
+			os.Exit(4)
 		default:
 			runFromFile(os.Args[1])
 			return
 		}
 	}
 
+	// pflag's default CommandLine uses ExitOnError, which calls
+	// os.Exit(2) on any parse failure (e.g. a typo'd flag name). Exit
+	// code 2 is already spec §9.2's "critical finding" code, so a typo
+	// would be indistinguishable from a real critical-severity network
+	// finding to any script checking the exit code. Switch to
+	// ContinueOnError and pick an exit code that doesn't collide.
+	pflag.CommandLine.Init("wifisec", pflag.ContinueOnError)
 	profileFlag := pflag.String("profile", "passive", "profile to run: passive, minimal, standard, full")
 	ownsNetwork := pflag.Bool("i-own-this-network", false, "confirm non-interactively that you own/administer this network (required above standard)")
-	pflag.Parse()
+	if err := pflag.CommandLine.Parse(os.Args[1:]); err != nil {
+		if err == pflag.ErrHelp {
+			os.Exit(0)
+		}
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(4)
+	}
 
 	requested, err := parseProfile(*profileFlag)
 	if err != nil {
@@ -113,11 +126,9 @@ func runReal(requested model.Profile, ownsNetwork bool) {
 	}
 
 	effective := requested
-	if len(steps) > 0 {
-		if !runConfirm(requested, netInfo.KnownNetwork, steps) {
-			fmt.Fprintln(os.Stderr, "dibatalkan: konfirmasi profil tidak diselesaikan")
-			os.Exit(4)
-		}
+	if !runConfirm(requested, netInfo.KnownNetwork, steps) {
+		fmt.Fprintln(os.Stderr, "dibatalkan: konfirmasi profil tidak diselesaikan")
+		os.Exit(4)
 	}
 
 	defs := reg.Filter(effective)
@@ -182,7 +193,7 @@ func runReal(requested model.Profile, ownsNetwork bool) {
 	// also make ctx.Err() non-nil on a plain timeout that has nothing to
 	// do with a BSSID change, which must NOT downgrade the profile.
 	var downgraded atomic.Bool
-	if wifiInfo.Available {
+	if wifiInfo.Available && effective != model.ProfilePassive {
 		go guard.Watch(ctx, adapter, wifiInfo.BSSID, 2*time.Second, func(string) {
 			downgraded.Store(true)
 			cancel()
@@ -253,7 +264,7 @@ func exitCodeFor(result model.Result) int {
 func launchTUI(result model.Result) {
 	if _, err := tea.NewProgram(tui.New(result)).Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "tui error:", err)
-		os.Exit(1)
+		os.Exit(3)
 	}
 }
 

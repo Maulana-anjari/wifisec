@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -16,7 +17,6 @@ import (
 // it runs to completion before tui.New(result) is ever called, so
 // internal/tui never needs to import guard.
 type confirmModel struct {
-	target  model.Profile
 	steps   []guard.ConfirmStep
 	stepIdx int
 	dialog  tui.ProfileDialog
@@ -26,7 +26,6 @@ type confirmModel struct {
 
 func newConfirmModel(target model.Profile, knownNetwork bool, steps []guard.ConfirmStep) confirmModel {
 	return confirmModel{
-		target: target,
 		steps:  steps,
 		dialog: tui.ProfileDialog{Target: target, KnownNetwork: knownNetwork},
 	}
@@ -96,7 +95,7 @@ func runConfirm(target model.Profile, knownNetwork bool, steps []guard.ConfirmSt
 	p := tea.NewProgram(newConfirmModel(target, knownNetwork, steps))
 	final, err := p.Run()
 	if err != nil {
-		fmt.Println("confirmation aborted:", err)
+		fmt.Fprintln(os.Stderr, "confirmation aborted:", err)
 		return false
 	}
 	return final.(confirmModel).Result()

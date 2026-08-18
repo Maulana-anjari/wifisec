@@ -30,7 +30,7 @@ func runKnownNetworksAdd() {
 		fmt.Fprintln(os.Stderr, "error: load whitelist:", err)
 		os.Exit(3)
 	}
-	list.Add(net.BSSIDHash, info.SSID)
+	list.Add(net.BSSIDHash, "")
 	if err := list.Save(); err != nil {
 		fmt.Fprintln(os.Stderr, "error: save whitelist:", err)
 		os.Exit(3)

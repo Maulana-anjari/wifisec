@@ -143,11 +143,11 @@ func blindSpotsFor(checks []model.Check) []string {
 		switch c.Control.Reason {
 		case "profile_does_not_allow":
 			spots = append(spots, c.Title+" tidak diperiksa - profil aktif tidak mengizinkan.")
+		case "not_implemented":
+			spots = append(spots, c.Title+" belum diimplementasikan.")
 		default:
-			// Only "profile_does_not_allow" exists as of this milestone;
-			// this branch is a graceful fallback for skip reasons a
-			// later milestone adds (e.g. "no_control_server") that
-			// haven't been given their own message yet.
+			// Graceful fallback for skip reasons not yet given their own
+			// message.
 			spots = append(spots, c.Title+" tidak diperiksa.")
 		}
 	}

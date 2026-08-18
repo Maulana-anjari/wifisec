@@ -34,6 +34,10 @@ type ProfileRequest struct {
 	KnownNetwork bool // whitelist.Contains result (spec G5, G7)
 }
 
+// Resolve is what spec §5.2 refers to as "guard.Enforce"; it's named
+// Resolve here because it only resolves the required confirmation
+// steps and never itself blocks/enforces anything.
+//
 // Resolve computes the ordered confirmation steps required before
 // req.Requested may run (spec §5.2 G1–G3, G5, G6). It never blocks —
 // interactive confirmation is the caller's job (cmd/wifisec). Resolve
