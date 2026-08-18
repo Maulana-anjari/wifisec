@@ -47,14 +47,18 @@ func (c CompareDoHCheck) Run(ctx stdcontext.Context, cc checks.CheckContext) mod
 	if err := cc.Counter.Add(c.def.ID, c.def.EstimatedPackets); err != nil {
 		return checks.NewErrorCheck(c.def, err, start)
 	}
-	networkAddrs, netErr := queryA(ctx, cfg.DNSServers[0])
-	dohAddrs, dohErr := queryDoH(ctx, "example.com")
+	networkAddrs, netErr := queryAFunc(ctx, cfg.DNSServers[0])
+	dohAddrs, dohErr := queryDoH(ctx, controlDomainNoFQDN)
 	if netErr != nil || dohErr != nil || len(dohAddrs) == 0 {
+		reason := "doh_unreachable"
+		if netErr != nil {
+			reason = "network_resolver_unreachable"
+		}
 		return model.Check{
 			ID: c.def.ID, Layer: c.def.Layer, Title: c.def.Title, ProfileRequired: c.def.ProfileRequired,
 			Status: model.StatusInconclusive, Confidence: model.ConfidenceLow,
 			Observed:    map[string]any{"network_addresses": networkAddrs},
-			Control:     model.Control{Performed: false, Reason: "doh_unreachable"},
+			Control:     model.Control{Performed: false, Reason: reason},
 			PacketsSent: c.def.EstimatedPackets, DurationMS: time.Since(start).Milliseconds(),
 		}
 	}

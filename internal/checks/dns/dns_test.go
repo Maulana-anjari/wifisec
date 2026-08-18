@@ -1,7 +1,7 @@
 package dns
 
 import (
-	"context"
+	stdcontext "context"
 	"testing"
 	"time"
 
@@ -30,7 +30,7 @@ func testCC(dnsServers []string) checks.CheckContext {
 func TestResolveBasicInconclusiveWhenNoDNSServers(t *testing.T) {
 	def := registry.CheckDefinition{ID: "dns.resolve_basic", EstimatedPackets: 1}
 	c := NewResolveBasicCheck(def)
-	got := c.Run(context.Background(), testCC(nil))
+	got := c.Run(stdcontext.Background(), testCC(nil))
 	if got.Status != model.StatusInconclusive {
 		t.Errorf("Status = %v, want inconclusive with no configured DNS server", got.Status)
 	}
@@ -39,7 +39,7 @@ func TestResolveBasicInconclusiveWhenNoDNSServers(t *testing.T) {
 func TestResolveBasicNormalAgainstPublicResolver(t *testing.T) {
 	def := registry.CheckDefinition{ID: "dns.resolve_basic", EstimatedPackets: 1}
 	c := NewResolveBasicCheck(def)
-	got := c.Run(context.Background(), testCC([]string{"1.1.1.1"}))
+	got := c.Run(stdcontext.Background(), testCC([]string{"1.1.1.1"}))
 	if got.Status != model.StatusNormal {
 		t.Errorf("Status = %v, want normal resolving example.com via 1.1.1.1: %#v", got.Status, got.Observed)
 	}
@@ -52,7 +52,7 @@ func TestResolveBasicNormalAgainstPublicResolver(t *testing.T) {
 func TestCompareDoHNormalWhenConsistent(t *testing.T) {
 	def := registry.CheckDefinition{ID: "dns.compare_doh", EstimatedPackets: 4}
 	c := NewCompareDoHCheck(def)
-	got := c.Run(context.Background(), testCC([]string{"1.1.1.1"}))
+	got := c.Run(stdcontext.Background(), testCC([]string{"1.1.1.1"}))
 	if got.Status != model.StatusNormal && got.Status != model.StatusInconclusive {
 		t.Errorf("Status = %v, want normal or inconclusive (never anomalous against a real public resolver): %#v", got.Status, got.Observed)
 	}
@@ -61,8 +61,27 @@ func TestCompareDoHNormalWhenConsistent(t *testing.T) {
 func TestTransparentProxyNormalOnCleanNetwork(t *testing.T) {
 	def := registry.CheckDefinition{ID: "dns.transparent_proxy", EstimatedPackets: 2}
 	c := NewTransparentProxyCheck(def)
-	got := c.Run(context.Background(), testCC([]string{"1.1.1.1"}))
+	got := c.Run(stdcontext.Background(), testCC([]string{"1.1.1.1"}))
 	if got.Status != model.StatusNormal && got.Status != model.StatusInconclusive {
 		t.Errorf("Status = %v, want normal or inconclusive: %#v", got.Status, got.Observed)
+	}
+}
+
+func TestResolveBasicInconclusiveWhenNoRecordsReturned(t *testing.T) {
+	def := registry.CheckDefinition{ID: "dns.resolve_basic", EstimatedPackets: 1}
+	c := NewResolveBasicCheck(def)
+	// Save original queryAFunc and restore after test
+	origQueryAFunc := queryAFunc
+	defer func() { queryAFunc = origQueryAFunc }()
+	// Mock queryAFunc to return empty slice (no A records)
+	queryAFunc = func(ctx stdcontext.Context, server string) ([]string, error) {
+		return []string{}, nil
+	}
+	got := c.Run(stdcontext.Background(), testCC([]string{"1.1.1.1"}))
+	if got.Status != model.StatusInconclusive {
+		t.Errorf("Status = %v, want inconclusive when no records returned", got.Status)
+	}
+	if got.Control.Reason != "no_records_returned" {
+		t.Errorf("Control.Reason = %v, want no_records_returned", got.Control.Reason)
 	}
 }

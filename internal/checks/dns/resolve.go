@@ -19,12 +19,19 @@ import (
 
 // controlDomain is the M4 control domain, user-approved per spec §13
 // (see plan Global Constraints — not guessed).
-const controlDomain = "example.com."
+const (
+	controlDomain       = "example.com."
+	controlDomainNoFQDN = "example.com"
+)
 
-// queryA sends one A-record query for controlDomain to server (host,
+// queryAFunc is the function used to send A-record queries. Exposed as
+// a package variable to allow testing and mocking.
+var queryAFunc = queryAImpl
+
+// queryAImpl sends one A-record query for controlDomain to server (host,
 // no port — ":53" is appended here) and returns the resolved
 // addresses as strings.
-func queryA(ctx stdcontext.Context, server string) ([]string, error) {
+func queryAImpl(ctx stdcontext.Context, server string) ([]string, error) {
 	m := new(dns.Msg)
 	m.SetQuestion(controlDomain, dns.TypeA)
 	c := new(dns.Client)
@@ -64,7 +71,7 @@ func (c ResolveBasicCheck) Run(ctx stdcontext.Context, cc checks.CheckContext) m
 	if err := cc.Counter.Add(c.def.ID, c.def.EstimatedPackets); err != nil {
 		return checks.NewErrorCheck(c.def, err, start)
 	}
-	addrs, err := queryA(ctx, cfg.DNSServers[0])
+	addrs, err := queryAFunc(ctx, cfg.DNSServers[0])
 	if err != nil {
 		return model.Check{
 			ID: c.def.ID, Layer: c.def.Layer, Title: c.def.Title, ProfileRequired: c.def.ProfileRequired,
@@ -76,14 +83,17 @@ func (c ResolveBasicCheck) Run(ctx stdcontext.Context, cc checks.CheckContext) m
 	}
 	status := model.StatusNormal
 	confidence := model.ConfidenceMedium
+	control := model.Control{Performed: false}
 	if len(addrs) == 0 {
-		status = model.StatusAnomalous
+		status = model.StatusInconclusive
+		confidence = model.ConfidenceLow
+		control = model.Control{Performed: false, Reason: "no_records_returned"}
 	}
 	return model.Check{
 		ID: c.def.ID, Layer: c.def.Layer, Title: c.def.Title, ProfileRequired: c.def.ProfileRequired,
 		Status: status, Confidence: confidence,
 		Observed:    map[string]any{"domain": controlDomain, "addresses": addrs, "resolver": cfg.DNSServers[0]},
-		Control:     model.Control{Performed: false},
+		Control:     control,
 		PacketsSent: c.def.EstimatedPackets, DurationMS: time.Since(start).Milliseconds(),
 	}
 }

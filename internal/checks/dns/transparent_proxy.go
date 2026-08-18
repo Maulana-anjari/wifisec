@@ -27,8 +27,8 @@ func (c TransparentProxyCheck) Run(ctx stdcontext.Context, cc checks.CheckContex
 	if err := cc.Counter.Add(c.def.ID, c.def.EstimatedPackets); err != nil {
 		return checks.NewErrorCheck(c.def, err, start)
 	}
-	directAddrs, directErr := queryA(ctx, directResolver)
-	dohAddrs, dohErr := queryDoH(ctx, "example.com")
+	directAddrs, directErr := queryAFunc(ctx, directResolver)
+	dohAddrs, dohErr := queryDoH(ctx, controlDomainNoFQDN)
 	if directErr != nil {
 		return model.Check{
 			ID: c.def.ID, Layer: c.def.Layer, Title: c.def.Title, ProfileRequired: c.def.ProfileRequired,
