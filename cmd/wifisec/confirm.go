@@ -69,6 +69,9 @@ func (m confirmModel) View() string {
 	if len(m.steps) == 0 {
 		return ""
 	}
+	if m.done {
+		return ""
+	}
 	var warning string
 	if m.steps[m.stepIdx] == guard.ConfirmFullUnknown {
 		warning = "Jaringan ini tidak ada di whitelist Anda — konfirmasi kedua diperlukan.\n\n"

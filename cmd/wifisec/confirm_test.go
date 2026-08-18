@@ -56,6 +56,21 @@ func TestConfirmModelEnterWithRightTextAdvancesThenCompletes(t *testing.T) {
 	}
 }
 
+func TestConfirmModelViewAfterFinalEnterDoesNotPanic(t *testing.T) {
+	// Regression test: bubbletea calls View() on the model returned by
+	// Update() in the same loop iteration that produced tea.Quit, before
+	// the QuitMsg round-trips. The completing Enter must leave View()
+	// safe to call even though stepIdx == len(steps).
+	m := newConfirmModel(model.ProfileMinimal, true, []guard.ConfirmStep{guard.ConfirmRaise})
+	m.dialog.Typed = "minimal"
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = updated.(confirmModel)
+	if !m.done {
+		t.Fatal("expected done=true after the only step is confirmed")
+	}
+	_ = m.View() // must not panic (index out of range)
+}
+
 func TestConfirmModelTwoStepsRequiresBothConfirmations(t *testing.T) {
 	m := newConfirmModel(model.ProfileFull, false, []guard.ConfirmStep{guard.ConfirmRaise, guard.ConfirmFullUnknown})
 	m.dialog.Typed = "full"
