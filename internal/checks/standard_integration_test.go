@@ -63,6 +63,9 @@ func TestStandardProfileStaysWithinRealPacketBudget(t *testing.T) {
 			built = append(built, ctor(d))
 		}
 	}
+	if len(built) != len(factory) {
+		t.Fatalf("built %d checkers from factory of %d (factory/registry desynced?); some expected checks missing", len(built), len(factory))
+	}
 	cc := checks.CheckContext{
 		Platform: platform.New(),
 		Counter:  guard.NewPacketCounter(model.ProfileStandard.EstimatedPackets()),
